@@ -19,7 +19,13 @@ export const registerSchema = z
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "As passwords não coincidem",
-    path: ["confirmPassword"], // o erro aparece associado a este campo específico
+    path: ["confirmPassword"],
   });
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().min(1, "O email é obrigatório").email("Email inválido"),
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;

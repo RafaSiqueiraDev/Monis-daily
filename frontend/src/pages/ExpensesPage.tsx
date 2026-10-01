@@ -43,7 +43,7 @@ export default function ExpensesPage() {
             </TabsList>
             <TabsContent value="fixed">
               {isPrimaryCountry ? (
-                <BillsSection referenceMonth={referenceMonth} />
+                <BillsSection referenceMonth={referenceMonth} currency={currency} />
               ) : (
                 <p className="py-10 text-center text-sm text-slate-400">Sem contas fixas neste país.</p>
               )}
@@ -58,16 +58,18 @@ export default function ExpensesPage() {
           </Tabs>
         </div>
 
-        {/* Desktop: duas colunas alinhadas */}
+        {/* Desktop: duas colunas espelhadas e alinhadas */}
         <div className="hidden gap-6 lg:grid lg:grid-cols-2 lg:items-start">
           <div className="flex flex-col gap-4">
             {isPrimaryCountry ? (
-              <BillsSection referenceMonth={referenceMonth} />
+              <BillsSection referenceMonth={referenceMonth} currency={currency} />
             ) : (
               <>
                 <div className="flex h-10 items-center justify-between">
                   <h2 className="text-sm font-semibold text-slate-900">Contas Fixas</h2>
                 </div>
+                <div className="h-9" />
+                <div className="h-[72px] rounded-xl border border-dashed border-slate-200" />
                 <p className="py-10 text-center text-sm text-slate-400">Sem contas fixas neste país.</p>
               </>
             )}

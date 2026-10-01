@@ -17,15 +17,18 @@ import { Label } from "../ui/label";
 import { AmountInput } from "../ui/amount-input";
 import { Checkbox } from "../ui/checkbox";
 import { MonthPicker } from "../ui/month-picker";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../ui/select";
 import { incomeSchema, type IncomeFormInput, type IncomeFormData } from "../../lib/validations/income";
 import { useCreateIncome } from "../../hooks/useIncomes";
+import { INCOME_CATEGORIES, buildIncomeDescription } from "../../lib/incomeCategories";
 
 export function IncomeFormDialog({ defaultReferenceMonth }: { defaultReferenceMonth: string }) {
   const [open, setOpen] = useState(false);
   const createIncome = useCreateIncome();
 
   const defaultValues = (): IncomeFormInput => ({
-    description: "",
+    category: INCOME_CATEGORIES[0].value,
+    detail: "",
     amount: "",
     reference_month: defaultReferenceMonth,
     received: false,
@@ -43,16 +46,32 @@ export function IncomeFormDialog({ defaultReferenceMonth }: { defaultReferenceMo
   });
 
   const onSubmit = (data: IncomeFormData) => {
-    createIncome.mutate(data, {
-      onSuccess: () => {
-        reset(defaultValues());
-        setOpen(false);
+    const description = buildIncomeDescription(data.category, data.detail ?? "");
+
+    createIncome.mutate(
+      {
+        description,
+        amount: data.amount,
+        reference_month: data.reference_month,
+        received: data.received,
       },
-    });
+      {
+        onSuccess: () => {
+          reset(defaultValues());
+          setOpen(false);
+        },
+      }
+    );
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) reset(defaultValues());
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4" />
@@ -68,9 +87,32 @@ export function IncomeFormDialog({ defaultReferenceMonth }: { defaultReferenceMo
 
         <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="description">Descrição</Label>
-            <Input id="description" placeholder="Ex: Salário, Freelance..." {...register("description")} />
-            {errors.description && <p className="text-xs text-red-600">{errors.description.message}</p>}
+            <Label>Categoria</Label>
+            <Controller
+              name="category"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleciona a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INCOME_CATEGORIES.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.emoji} {category.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.category && <p className="text-xs text-red-600">{errors.category.message}</p>}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="detail">Detalhe (opcional)</Label>
+            <Input id="detail" placeholder="Ex: Empresa XPTO" {...register("detail")} />
+            {errors.detail && <p className="text-xs text-red-600">{errors.detail.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

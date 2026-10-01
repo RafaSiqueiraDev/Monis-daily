@@ -1,32 +1,32 @@
 import { apiClient } from "./client";
-import type { LoginCredentials, RegisterData, AuthResponse, UserRead } from "../types/auth";
+import type { Token, UserRead, UserCreate } from "../types/user";
 
-export async function login(credentials: any): Promise<AuthResponse> {
-  const params = new URLSearchParams();
-  
-  
-  const userEmail = credentials.email || credentials.username || "";
-  const userPassword = credentials.password || "";
+export async function login(email: string, password: string): Promise<Token> {
+  const formData = new URLSearchParams();
+  formData.append("username", email);
+  formData.append("password", password);
 
-  params.append("username", userEmail);
-  params.append("password", userPassword);
-
-  const response = await apiClient.post<AuthResponse>("/auth/login", params, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+  const { data } = await apiClient.post<Token>("/auth/login", formData, {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
-  return response.data;
+  return data;
 }
 
-export async function register(data: RegisterData): Promise<UserRead> {
-  const response = await apiClient.post<UserRead>("/auth/register", data);
-  return response.data;
+export async function register(payload: UserCreate): Promise<UserRead> {
+  const { data } = await apiClient.post<UserRead>("/auth/register", payload);
+  return data;
 }
 
 export async function getCurrentUser(): Promise<UserRead> {
-  const response = await apiClient.get<UserRead>("/auth/me");
-  return response.data;
+  const { data } = await apiClient.get<UserRead>("/auth/me");
+  return data;
 }
 
-export const getMe = getCurrentUser;
+/**
+ * Endpoint ainda não implementado no backend (não existe /auth/forgot-password
+ * neste momento). A chamada está pronta e vai devolver 404 até essa rota ser
+ * criada no FastAPI — o dialog trata esse erro com uma mensagem clara.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiClient.post("/auth/forgot-password", { email });
+}

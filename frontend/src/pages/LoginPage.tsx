@@ -1,119 +1,116 @@
-import React, { useState } from "react";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { login, getCurrentUser } from "../api/auth";
-import { useAuthStore } from "../store/authStore";
+import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Wallet, CheckCircle2 } from "lucide-react";
+
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
-import { Wallet, CheckCircle2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
+import { loginSchema, type LoginFormData } from "../lib/validations/auth";
+import { useLogin } from "../hooks/useAuth";
+import { ForgotPasswordDialog } from "../components/auth/ForgotPasswordDialog";
 
 export default function LoginPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const registered = searchParams.get("registered");
+  const justRegistered = searchParams.get("registered") === "true";
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
-  const setToken = useAuthStore((state) => state.setToken);
-  const setUser = useAuthStore((state) => state.setUser);
+  const loginMutation = useLogin();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    try {
-      // Envia diretamente o email e a password introduzidos
-      const authData = await login({ email, password });
-      setToken(authData.access_token);
-
-      // Procura dados do perfil do utilizador
-      const userData = await getCurrentUser();
-      setUser(userData);
-
-      // Redireciona para o Dashboard
-      navigate("/dashboard");
-    } catch (err: any) {
-      console.error("Erro no login:", err);
-      setError("Email ou password incorretos. Tenta novamente.");
-    } finally {
-      setLoading(false);
-    }
+  const onSubmit = (data: LoginFormData) => {
+    loginMutation.mutate(data);
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
-      <div className="mb-6 flex flex-col items-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white shadow-md">
-          <Wallet className="h-6 w-6" />
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center gap-2">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100/80 text-emerald-700">
+            <Wallet className="h-6 w-6" />
+          </div>
+          <h1 className="bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 bg-clip-text text-xl font-bold tracking-tight text-transparent">
+            Monis Daily
+          </h1>
         </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">
-          Finanças App
-        </h1>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Entrar</CardTitle>
+            <CardDescription>Acede à tua conta para continuar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {justRegistered && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                Conta criada com sucesso. Inicia sessão abaixo.
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="tu@exemplo.com"
+                  autoComplete="email"
+                  {...register("email")}
+                />
+                {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordOpen(true)}
+                    className="text-xs font-medium text-slate-500 hover:text-slate-900"
+                  >
+                    Esqueceste-te da palavra-passe?
+                  </button>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  {...register("password")}
+                />
+                {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+              </div>
+
+              {loginMutation.isError && (
+                <p className="text-xs text-red-600">
+                  Email ou password incorretos. Tenta novamente.
+                </p>
+              )}
+
+              <Button type="submit" className="mt-2 w-full" isLoading={loginMutation.isPending}>
+                Entrar
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          Ainda não tens conta?{" "}
+          <Link to="/register" className="font-medium text-slate-900 hover:underline">
+            Regista-te
+          </Link>
+        </p>
       </div>
 
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Entrar</CardTitle>
-          <CardDescription>Acede à tua conta para continuar</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {registered && (
-              <div className="flex items-center gap-2 rounded-md bg-green-50 p-3 text-xs text-green-700 border border-green-200">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>Conta criada com sucesso. Inicia sessão abaixo.</span>
-              </div>
-            )}
-
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-xs text-red-600 border border-red-200">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@exemplo.com"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-          </CardContent>
-
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "A entrar..." : "Entrar"}
-            </Button>
-            <p className="text-xs text-slate-500 text-center">
-              Ainda não tens conta?{" "}
-              <Link to="/register" className="font-semibold text-slate-900 underline">
-                Regista-te
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+      <ForgotPasswordDialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen} />
     </div>
   );
 }

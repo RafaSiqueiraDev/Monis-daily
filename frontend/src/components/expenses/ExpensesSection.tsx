@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { Wallet2, CalendarDays } from "lucide-react";
+import { Wallet2 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../ui/select";
 import { ExpenseFormDialog } from "./ExpenseFormDialog";
@@ -37,8 +37,6 @@ export function ExpensesSection({
   }, [expenses, categoryFilter, isPrimaryCountry]);
 
   const totalMonth = filteredExpenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
-  const daysInMonth = endOfMonth(new Date(referenceMonth)).getDate();
-  const dailyAverage = daysInMonth > 0 ? totalMonth / daysInMonth : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -61,35 +59,19 @@ export function ExpensesSection({
         </SelectContent>
       </Select>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-              <Wallet2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Total gasto no mês</p>
-              <p className="text-lg font-semibold text-slate-900">
-                {displayCurrency(totalMonth, hideAmounts, currency)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-              <CalendarDays className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Média diária</p>
-              <p className="text-lg font-semibold text-slate-900">
-                {displayCurrency(dailyAverage, hideAmounts, currency)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="flex items-center gap-4 p-5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+            <Wallet2 className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-500">Total gasto no mês</p>
+            <p className="text-lg font-semibold text-slate-900">
+              {displayCurrency(totalMonth, hideAmounts, currency)}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <ExpenseList
         expenses={filteredExpenses}

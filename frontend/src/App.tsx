@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { AppLayout } from "./components/layout/AppLayout";
 import LoginPage from "./pages/LoginPage";
@@ -9,6 +9,12 @@ import IncomesPage from "./pages/IncomesPage";
 import MonthlyOverviewPage from "./pages/MonthlyOverviewPage";
 import CardsPage from "./pages/CardsPage";
 import InvestmentsPage from "./pages/InvestmentsPage";
+import { useAuthStore } from "./store/authStore";
+
+function CatchAllRedirect() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return <Navigate to={isAuthenticated ? "/" : "/login"} replace />;
+}
 
 export default function App() {
   return (
@@ -19,6 +25,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
           <Route path="/resumo-mensal" element={<MonthlyOverviewPage />} />
           <Route path="/despesas" element={<ExpensesPage />} />
           <Route path="/receitas" element={<IncomesPage />} />
@@ -26,6 +33,8 @@ export default function App() {
           <Route path="/investimentos" element={<InvestmentsPage />} />
         </Route>
       </Route>
+
+      <Route path="*" element={<CatchAllRedirect />} />
     </Routes>
   );
 }
