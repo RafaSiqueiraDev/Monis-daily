@@ -2,8 +2,10 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field
-from app.models.enums import PaymentStatus
+
+from app.models.enums import PaymentStatus, CountryCode, CurrencyCode
 
 
 class BillInstanceUpdate(BaseModel):
@@ -20,5 +22,7 @@ class BillInstanceRead(BaseModel):
     paid_at: Optional[datetime] = None
     description: str
     due_day: int
+    country: CountryCode
+    currency: CurrencyCode
 
     model_config = ConfigDict(from_attributes=True)

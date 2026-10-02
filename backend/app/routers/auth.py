@@ -5,6 +5,7 @@ from sqlalchemy import select, func
 
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token, get_current_user
+from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, Token
 
@@ -13,6 +14,12 @@ router = APIRouter(prefix="/auth", tags=["Autenticacao"])
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+    if user_in.invite_code != settings.REGISTRATION_INVITE_CODE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Código de convite inválido. Esta aplicação está em beta fechado.",
+        )
+
     normalized_email = user_in.email.strip().lower()
 
     result = await db.execute(
@@ -22,7 +29,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Este email ja esta registado",
+            detail="Este email já está registado",
         )
 
     new_user = User(
@@ -41,11 +48,9 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ):
-    normalized_email = form_data.username.strip().lower()
-
-    # Pesquisa com func.lower para aceitar qualquer combinação de maiúsculas/minúsculas
     result = await db.execute(
-        select(User).where(func.lower(User.email) == normalized_email)
+        select(User).where(func.lower(User.email) ==
+                           form_data.username.strip().lower())
     )
     user = result.scalar_one_or_none()
 
@@ -57,7 +62,7 @@ async def login(
         )
 
     access_token = create_access_token(subject=str(user.id))
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(access_token=access_token)
 
 
 @router.get("/me", response_model=UserRead)

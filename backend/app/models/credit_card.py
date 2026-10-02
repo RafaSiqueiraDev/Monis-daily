@@ -9,7 +9,7 @@ from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
-from app.models.enums import PaymentStatus
+from app.models.enums import PaymentStatus, CountryCode, CurrencyCode
 
 
 class CreditCard(Base):
@@ -23,6 +23,10 @@ class CreditCard(Base):
     closing_day: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     due_day: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     credit_limit: Mapped[Optional[float]] = mapped_column(Numeric(12, 2))
+    country: Mapped["CountryCode"] = mapped_column(SqlEnum(
+        CountryCode, name="country_code"), default=CountryCode.PT, nullable=False)
+    currency: Mapped["CurrencyCode"] = mapped_column(SqlEnum(
+        CurrencyCode, name="currency_code"), default=CurrencyCode.EUR, nullable=False)
 
     __table_args__ = (
         CheckConstraint("closing_day BETWEEN 1 AND 31",

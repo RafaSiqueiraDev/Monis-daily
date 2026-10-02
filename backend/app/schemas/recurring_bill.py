@@ -1,9 +1,11 @@
 import uuid
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field
-from app.models.enums import BillType
+
+from app.models.enums import BillType, CountryCode, CurrencyCode
 
 
 class RecurringBillBase(BaseModel):
@@ -12,6 +14,9 @@ class RecurringBillBase(BaseModel):
     due_day: int = Field(ge=1, le=31)
     default_amount: Decimal = Field(gt=0, decimal_places=2)
     category_id: Optional[uuid.UUID] = None
+    active_until: Optional[date] = None
+    country: CountryCode = CountryCode.PT
+    currency: CurrencyCode = CurrencyCode.EUR
 
 
 class RecurringBillCreate(RecurringBillBase):
@@ -27,6 +32,7 @@ class RecurringBillUpdate(BaseModel):
         default=None, gt=0, decimal_places=2)
     category_id: Optional[uuid.UUID] = None
     active: Optional[bool] = None
+    active_until: Optional[date] = None
 
 
 class RecurringBillRead(RecurringBillBase):

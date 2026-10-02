@@ -25,6 +25,8 @@ def _to_read_schema(instance: BillInstance) -> BillInstanceRead:
         paid_at=instance.paid_at,
         description=instance.recurring_bill.description,
         due_day=instance.recurring_bill.due_day,
+        country=instance.recurring_bill.country,
+        currency=instance.recurring_bill.currency,
     )
 
 

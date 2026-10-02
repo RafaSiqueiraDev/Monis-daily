@@ -2,7 +2,10 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.models.enums import CountryCode, CurrencyCode
 
 
 class IncomeBase(BaseModel):
@@ -10,6 +13,8 @@ class IncomeBase(BaseModel):
     amount: Decimal = Field(gt=0, decimal_places=2)
     reference_month: date
     received: bool = False
+    country: CountryCode = CountryCode.PT
+    currency: CurrencyCode = CurrencyCode.EUR
 
     @field_validator("reference_month")
     @classmethod
@@ -32,4 +37,5 @@ class IncomeUpdate(BaseModel):
 class IncomeRead(IncomeBase):
     id: uuid.UUID
     created_at: datetime
+
     model_config = ConfigDict(from_attributes=True)

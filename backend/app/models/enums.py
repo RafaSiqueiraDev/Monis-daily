@@ -34,3 +34,8 @@ class CurrencyCode(str, enum.Enum):
     USD = "USD"
     GBP = "GBP"
     CHF = "CHF"
+
+
+class CountryCode(str, enum.Enum):
+    PT = "PT"
+    BR = "BR"

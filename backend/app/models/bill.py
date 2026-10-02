@@ -1,6 +1,7 @@
 import uuid
 from datetime import date, datetime
 from typing import Optional
+
 from sqlalchemy import (
     String, Numeric, Date, DateTime, Boolean, SmallInteger,
     ForeignKey, UniqueConstraint, CheckConstraint, func,
@@ -8,8 +9,9 @@ from sqlalchemy import (
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.core.database import Base
-from app.models.enums import BillType, PaymentStatus
+from app.models.enums import BillType, PaymentStatus, CountryCode, CurrencyCode
 
 
 class Income(Base):
@@ -24,6 +26,10 @@ class Income(Base):
     reference_month: Mapped[date] = mapped_column(Date, nullable=False)
     received: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False)
+    country: Mapped[CountryCode] = mapped_column(SqlEnum(
+        CountryCode, name="country_code"), default=CountryCode.PT, nullable=False)
+    currency: Mapped[CurrencyCode] = mapped_column(SqlEnum(
+        CurrencyCode, name="currency_code"), default=CurrencyCode.EUR, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
 
@@ -46,9 +52,11 @@ class RecurringBill(Base):
     default_amount: Mapped[float] = mapped_column(
         Numeric(12, 2), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    # NULL = recorrente contínua (sem fim). Preenchido = deixa de gerar
-    # instances para meses posteriores a este (inclusive o próprio mês).
     active_until: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    country: Mapped[CountryCode] = mapped_column(SqlEnum(
+        CountryCode, name="country_code"), default=CountryCode.PT, nullable=False)
+    currency: Mapped[CurrencyCode] = mapped_column(SqlEnum(
+        CurrencyCode, name="currency_code"), default=CurrencyCode.EUR, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
 
@@ -100,6 +108,10 @@ class DailyExpense(Base):
     amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     expense_date: Mapped[date] = mapped_column(
         Date, server_default=func.current_date())
+    country: Mapped[CountryCode] = mapped_column(SqlEnum(
+        CountryCode, name="country_code"), default=CountryCode.PT, nullable=False)
+    currency: Mapped[CurrencyCode] = mapped_column(SqlEnum(
+        CurrencyCode, name="currency_code"), default=CurrencyCode.EUR, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
 

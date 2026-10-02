@@ -2,7 +2,10 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.enums import CountryCode, CurrencyCode
 
 
 class DailyExpenseBase(BaseModel):
@@ -10,6 +13,8 @@ class DailyExpenseBase(BaseModel):
     amount: Decimal = Field(gt=0, decimal_places=2)
     category_id: Optional[uuid.UUID] = None
     expense_date: date = Field(default_factory=date.today)
+    country: CountryCode = CountryCode.PT
+    currency: CurrencyCode = CurrencyCode.EUR
 
 
 class DailyExpenseCreate(DailyExpenseBase):

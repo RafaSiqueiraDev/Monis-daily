@@ -2,10 +2,10 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
-from app.models.enums import PaymentStatus
 
-# --- CARTÕES ---
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.enums import PaymentStatus, CountryCode, CurrencyCode
 
 
 class CreditCardBase(BaseModel):
@@ -14,23 +14,16 @@ class CreditCardBase(BaseModel):
     due_day: int = Field(ge=1, le=31)
     credit_limit: Optional[Decimal] = Field(
         default=None, gt=0, decimal_places=2)
+    country: CountryCode = CountryCode.PT
+    currency: CurrencyCode = CurrencyCode.EUR
 
 
 class CreditCardCreate(CreditCardBase):
     pass
 
 
-class CreditCardUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=80)
-    closing_day: Optional[int] = Field(default=None, ge=1, le=31)
-    due_day: Optional[int] = Field(default=None, ge=1, le=31)
-    credit_limit: Optional[Decimal] = Field(
-        default=None, gt=0, decimal_places=2)
-
-
 class CreditCardRead(CreditCardBase):
     id: uuid.UUID
-    user_id: uuid.UUID
 
     model_config = ConfigDict(from_attributes=True)
 
