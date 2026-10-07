@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Closed beta: registo exige este código. Define o valor real no .env
     # (local) e nas env vars do Render (produção) — nunca commitado no código.
     REGISTRATION_INVITE_CODE: str = "change-me"
-    FRONTEND_URL: str = "http://localhost:5173"
+    FRONTEND_URL: str = "https://monis-daily-ashen.vercel.app"
 
     model_config = SettingsConfigDict(
         env_file=".env",
