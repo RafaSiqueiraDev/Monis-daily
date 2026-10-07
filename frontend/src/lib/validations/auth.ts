@@ -16,6 +16,7 @@ export const registerSchema = z
       .min(8, "A password deve ter pelo menos 8 caracteres")
       .max(72, "A password não pode exceder 72 caracteres"),
     confirmPassword: z.string(),
+    invite_code: z.string().min(1, "O código de convite é obrigatório"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "As passwords não coincidem",
@@ -29,3 +30,18 @@ export const forgotPasswordSchema = z.object({
 });
 
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "A password deve ter pelo menos 8 caracteres")
+      .max(72, "A password não pode exceder 72 caracteres"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As passwords não coincidem",
+    path: ["confirmPassword"],
+  });
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;

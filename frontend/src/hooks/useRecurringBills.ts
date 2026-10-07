@@ -3,6 +3,7 @@ import {
   listRecurringBills,
   createRecurringBill,
   updateRecurringBill,
+  deleteRecurringBill,
   generateMonthInstances,
 } from "../api/recurringBills";
 import type { RecurringBillCreate, RecurringBillUpdate } from "../types/bill";
@@ -32,6 +33,18 @@ export function useUpdateRecurringBill() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recurring-bills"] });
       queryClient.invalidateQueries({ queryKey: ["bill-instances"] });
+    },
+  });
+}
+
+export function useDeleteRecurringBill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteRecurringBill(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recurring-bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bill-instances"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
     },
   });
 }

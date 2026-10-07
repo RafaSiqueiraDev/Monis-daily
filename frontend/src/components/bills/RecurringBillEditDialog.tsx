@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +21,24 @@ import {
   type RecurringBillEditFormInput,
   type RecurringBillEditFormData,
 } from "../../lib/validations/recurringBillEdit";
-import { useUpdateRecurringBill } from "../../hooks/useRecurringBills";
-import type { RecurringBillRead } from "../../types/bill";
+import { useUpdateRecurringBill, useDeleteRecurringBill } from "../../hooks/useRecurringBills";
+import { useUpdateBillInstance } from "../../hooks/useBillInstances";
+import type { RecurringBillRead, BillInstanceRead } from "../../types/bill";
 
-export function RecurringBillEditDialog({ bill }: { bill: RecurringBillRead }) {
+interface RecurringBillEditDialogProps {
+  bill: RecurringBillRead;
+  /** Instance do mês atualmente visível, se já tiver sido gerada. */
+  currentInstance?: BillInstanceRead;
+}
+
+export function RecurringBillEditDialog({ bill, currentInstance }: RecurringBillEditDialogProps) {
   const [open, setOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [applyToCurrentMonth, setApplyToCurrentMonth] = useState(false);
+
   const updateBill = useUpdateRecurringBill();
+  const deleteBill = useDeleteRecurringBill();
+  const updateInstance = useUpdateBillInstance();
 
   const defaultValues = (): RecurringBillEditFormInput => ({
     description: bill.description ?? "",
@@ -46,6 +58,8 @@ export function RecurringBillEditDialog({ bill }: { bill: RecurringBillRead }) {
     defaultValues: defaultValues(),
   });
 
+  const isSaving = updateBill.isPending || updateInstance.isPending;
+
   const onSubmit = (data: RecurringBillEditFormData) => {
     updateBill.mutate(
       {
@@ -57,8 +71,23 @@ export function RecurringBillEditDialog({ bill }: { bill: RecurringBillRead }) {
           active: data.active,
         },
       },
-      { onSuccess: () => setOpen(false) }
+      {
+        onSuccess: () => {
+          if (applyToCurrentMonth && currentInstance) {
+            updateInstance.mutate(
+              { id: currentInstance.id, payload: { amount: data.default_amount } },
+              { onSuccess: () => setOpen(false) }
+            );
+          } else {
+            setOpen(false);
+          }
+        },
+      }
     );
+  };
+
+  const handleDelete = () => {
+    deleteBill.mutate(bill.id, { onSuccess: () => setOpen(false) });
   };
 
   return (
@@ -66,7 +95,11 @@ export function RecurringBillEditDialog({ bill }: { bill: RecurringBillRead }) {
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) reset(defaultValues());
+        if (next) {
+          reset(defaultValues());
+          setConfirmingDelete(false);
+          setApplyToCurrentMonth(false);
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -81,7 +114,9 @@ export function RecurringBillEditDialog({ bill }: { bill: RecurringBillRead }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar conta fixa</DialogTitle>
-          <DialogDescription>As alterações aplicam-se a partir dos próximos meses gerados</DialogDescription>
+          <DialogDescription>
+            As alterações aplicam-se por padrão só aos próximos meses gerados.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
@@ -129,15 +164,62 @@ export function RecurringBillEditDialog({ bill }: { bill: RecurringBillRead }) {
             )}
           />
 
-          <div className="mt-2 flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancelar
+          {currentInstance && (
+            <label className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <Checkbox
+                checked={applyToCurrentMonth}
+                onCheckedChange={(checked) => setApplyToCurrentMonth(checked === true)}
+              />
+              <span className="text-sm text-slate-700">
+                Aplicar também à conta deste mês
+                <span className="block text-xs text-slate-500">
+                  Atualiza o valor da instância já gerada para este mês com o novo valor base.
+                </span>
+              </span>
+            </label>
+          )}
+
+          <div className="mt-2 flex items-center justify-between gap-2">
+            {confirmingDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-600">Eliminar esta conta?</span>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleteBill.isPending}
+                  className="flex h-8 w-8 items-center justify-center rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar conta
+              </button>
+            )}
+
+            <div className="flex gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" isLoading={isSaving}>
+                Guardar
               </Button>
-            </DialogClose>
-            <Button type="submit" isLoading={updateBill.isPending}>
-              Guardar
-            </Button>
+            </div>
           </div>
         </form>
       </DialogContent>

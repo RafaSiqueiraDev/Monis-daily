@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -17,8 +18,7 @@ from app.schemas.recurring_bill import (
 from app.schemas.bill_instance import BillInstanceRead
 from app.services.bill_service import generate_month_instances
 
-router = APIRouter(prefix="/recurring-bills",
-                   tags=["Contas Fixas e Variaveis"])
+router = APIRouter(prefix="/recurring-bills", tags=["Contas Fixas/Variáveis"])
 
 
 @router.post("", response_model=RecurringBillRead, status_code=status.HTTP_201_CREATED)
@@ -45,6 +45,7 @@ async def list_recurring_bills(
     if active_only:
         stmt = stmt.where(RecurringBill.active.is_(True))
     stmt = stmt.order_by(RecurringBill.due_day)
+
     result = await db.execute(stmt)
     return result.scalars().all()
 
@@ -69,6 +70,8 @@ async def generate_month(
             paid_at=inst.paid_at,
             description=inst.recurring_bill.description,
             due_day=inst.recurring_bill.due_day,
+            country=inst.recurring_bill.country,
+            currency=inst.recurring_bill.currency,
         )
         for inst in new_instances
     ]
@@ -89,7 +92,7 @@ async def _get_owned_recurring_bill(bill_id: uuid.UUID, current_user: User, db: 
     bill = result.scalar_one_or_none()
     if bill is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Conta recorrente nao encontrada")
+                            detail="Conta recorrente não encontrada")
     return bill
 
 
@@ -110,9 +113,11 @@ async def update_recurring_bill(
     db: AsyncSession = Depends(get_db),
 ):
     bill = await _get_owned_recurring_bill(bill_id, current_user, db)
+
     update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(bill, field, value)
+
     await db.commit()
     await db.refresh(bill)
     return bill

@@ -26,6 +26,10 @@ export async function updateRecurringBill(
   return data;
 }
 
+export async function deleteRecurringBill(id: string): Promise<void> {
+  await apiClient.delete(`/recurring-bills/${id}`);
+}
+
 export async function generateMonthInstances(referenceMonth: string): Promise<GenerateMonthResult> {
   const { data } = await apiClient.post<GenerateMonthResult>(
     `/recurring-bills/generate-month/${referenceMonth}`

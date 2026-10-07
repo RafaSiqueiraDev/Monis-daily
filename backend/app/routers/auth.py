@@ -2,12 +2,28 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+import uuid
 
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token, get_current_user
+from app.core.security import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_password_reset_token,
+    decode_password_reset_token,
+    get_current_user,
+)
 from app.core.config import settings
 from app.models.user import User
-from app.schemas.user import UserCreate, UserRead, Token
+from app.schemas.user import (
+    UserCreate,
+    UserRead,
+    Token,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    ResetPasswordRequest,
+)
+from app.services.email_service import send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["Autenticacao"])
 
@@ -68,3 +84,54 @@ async def login(
 @router.get("/me", response_model=UserRead)
 async def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Resposta sempre genérica e com 200, exista ou não o email — evita que
+    alguém use este endpoint para descobrir quais emails estão registados.
+    """
+    normalized_email = payload.email.strip().lower()
+    result = await db.execute(select(User).where(func.lower(User.email) == normalized_email))
+    user = result.scalar_one_or_none()
+
+    debug_token = None
+
+    if user is not None:
+        reset_token = create_password_reset_token(str(user.id))
+        await send_password_reset_email(user.email, reset_token)
+        if settings.ENVIRONMENT == "development":
+            debug_token = reset_token
+
+    return ForgotPasswordResponse(
+        message="Se existir uma conta com esse email, vais receber instruções de recuperação em breve.",
+        debug_token=debug_token,
+    )
+
+
+@router.post("/reset-password", response_model=UserRead)
+async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    user_id_str = decode_password_reset_token(payload.token)
+    if user_id_str is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido ou expirado. Pede uma nova recuperação de password.",
+        )
+
+    try:
+        user_id = uuid.UUID(user_id_str)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Token inválido.")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Utilizador não encontrado.")
+
+    user.password_hash = hash_password(payload.new_password)
+    await db.commit()
+    await db.refresh(user)
+    return user

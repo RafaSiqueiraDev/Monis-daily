@@ -2,8 +2,10 @@ import { Card, CardContent } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { formatCurrency } from "../../utils/currency";
+import { displayCurrency } from "../../utils/currency";
 import { useToggleIncomeReceived } from "../../hooks/useIncomes";
+import { useUiPreferencesStore } from "../../store/uiPreferencesStore";
+import { IncomeEditDialog } from "./IncomeEditDialog";
 import type { IncomeRead } from "../../types/income";
 
 interface IncomeListProps {
@@ -13,6 +15,7 @@ interface IncomeListProps {
 
 export function IncomeList({ incomes, isLoading }: IncomeListProps) {
   const toggleReceived = useToggleIncomeReceived();
+  const hideAmounts = useUiPreferencesStore((state) => state.hideAmounts);
 
   return (
     <Card>
@@ -38,9 +41,9 @@ export function IncomeList({ incomes, isLoading }: IncomeListProps) {
               </Badge>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-emerald-600">
-                {formatCurrency(income.amount)}
+                {displayCurrency(Number(income.amount ?? 0), hideAmounts)}
               </span>
               <Button
                 size="sm"
@@ -50,6 +53,7 @@ export function IncomeList({ incomes, isLoading }: IncomeListProps) {
               >
                 {income.received ? "Marcar previsto" : "Marcar recebido"}
               </Button>
+              <IncomeEditDialog income={income} />
             </div>
           </div>
         ))}

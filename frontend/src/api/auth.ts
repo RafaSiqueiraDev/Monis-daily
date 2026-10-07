@@ -22,11 +22,20 @@ export async function getCurrentUser(): Promise<UserRead> {
   return data;
 }
 
-/**
- * Endpoint ainda não implementado no backend (não existe /auth/forgot-password
- * neste momento). A chamada está pronta e vai devolver 404 até essa rota ser
- * criada no FastAPI — o dialog trata esse erro com uma mensagem clara.
- */
-export async function requestPasswordReset(email: string): Promise<void> {
-  await apiClient.post("/auth/forgot-password", { email });
+export interface ForgotPasswordResponse {
+  message: string;
+  debug_token?: string | null;
+}
+
+export async function requestPasswordReset(email: string): Promise<ForgotPasswordResponse> {
+  const { data } = await apiClient.post<ForgotPasswordResponse>("/auth/forgot-password", { email });
+  return data;
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<UserRead> {
+  const { data } = await apiClient.post<UserRead>("/auth/reset-password", {
+    token,
+    new_password: newPassword,
+  });
+  return data;
 }

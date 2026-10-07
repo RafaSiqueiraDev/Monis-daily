@@ -1,4 +1,4 @@
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Undo2 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
 import { Badge } from "../ui/badge";
@@ -38,6 +38,7 @@ export function BillInstanceList({
         {sorted.map((instance) => {
           const isOverdue = instance.status === "pending" && instance.due_day < today;
           const template = templates.find((t) => t.id === instance.recurring_bill_id);
+          const isTogglePending = markPaid.isPending && markPaid.variables?.id === instance.id;
 
           return (
             <div
@@ -61,19 +62,34 @@ export function BillInstanceList({
 
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-slate-900">
-                  {displayCurrency(instance.amount, hideAmounts)}
+                  {displayCurrency(Number(instance.amount ?? 0), hideAmounts)}
                 </span>
-                {instance.status === "pending" && (
+
+                {instance.status === "pending" ? (
                   <Button
                     size="sm"
                     variant="outline"
-                    isLoading={markPaid.isPending && markPaid.variables?.id === instance.id}
+                    isLoading={isTogglePending}
                     onClick={() => markPaid.mutate({ id: instance.id, status: "paid" })}
                   >
                     Pago
                   </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    isLoading={isTogglePending}
+                    onClick={() => markPaid.mutate({ id: instance.id, status: "pending" })}
+                    title="Reverter para pendente"
+                  >
+                    <Undo2 className="h-3.5 w-3.5" />
+                    Desfazer
+                  </Button>
                 )}
-                {template && <RecurringBillEditDialog bill={template} />}
+
+                {template && (
+                  <RecurringBillEditDialog bill={template} currentInstance={instance} />
+                )}
               </div>
             </div>
           );

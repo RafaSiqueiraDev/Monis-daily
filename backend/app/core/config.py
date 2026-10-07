@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
 
     PROJECT_NAME: str = "Monis Daily"
     ENVIRONMENT: str = "development"
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
     # Closed beta: registo exige este código. Define o valor real no .env
     # (local) e nas env vars do Render (produção) — nunca commitado no código.
     REGISTRATION_INVITE_CODE: str = "change-me"
+    FRONTEND_URL: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(
         env_file=".env",

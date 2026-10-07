@@ -9,7 +9,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card";
-import { Wallet } from "lucide-react";
+import { Wallet, KeyRound } from "lucide-react";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -33,6 +33,7 @@ export default function RegisterPage() {
         name: data.name,
         email: data.email,
         password: data.password,
+        invite_code: data.invite_code,
       });
 
       navigate("/login?registered=true");
@@ -42,7 +43,6 @@ export default function RegisterPage() {
         if (typeof detail === "string") {
           setServerError(detail);
         } else if (Array.isArray(detail)) {
-          // Erros de validação do Pydantic (422)
           setServerError(detail.map((d: { msg: string }) => d.msg).join(", "));
         } else {
           setServerError(err.response?.data?.message || "Erro de ligação ao servidor.");
@@ -127,6 +127,24 @@ export default function RegisterPage() {
               />
               {errors.confirmPassword && (
                 <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <KeyRound className="h-4 w-4 text-emerald-600" />
+                <Label htmlFor="invite_code" className="font-semibold text-slate-800 text-xs">
+                  Código de Convite
+                </Label>
+              </div>
+              <Input
+                id="invite_code"
+                placeholder="Introduz o código"
+                className="bg-white"
+                {...formRegister("invite_code")}
+              />
+              {errors.invite_code && (
+                <p className="text-xs text-red-500">{errors.invite_code.message}</p>
               )}
             </div>
           </CardContent>
