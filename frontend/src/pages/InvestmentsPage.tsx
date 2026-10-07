@@ -7,7 +7,10 @@ import { PortfolioEvolutionChart } from "../components/investments/PortfolioEvol
 import { AssetFormDialog } from "../components/investments/AssetFormDialog";
 import { SnapshotFormDialog } from "../components/investments/SnapshotFormDialog";
 import { SnapshotList } from "../components/investments/SnapshotList";
+import { ContributionFormDialog } from "../components/investments/ContributionFormDialog";
+import { ContributionHistoryList } from "../components/investments/ContributionHistoryList";
 import { MonthPicker } from "../components/ui/month-picker";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
 import { useInvestmentSummary } from "../hooks/useInvestmentSummary";
 import { useInvestmentAssets } from "../hooks/useInvestmentAssets";
 import { useInvestmentSnapshotsForMonth } from "../hooks/useInvestmentSnapshots";
@@ -17,6 +20,7 @@ import type { CurrencyCode } from "../types/investment";
 export default function InvestmentsPage() {
   const [referenceMonth, setReferenceMonth] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [regionFilter, setRegionFilter] = useState<CurrencyCode | "all">("all");
+  const [historyAssetId, setHistoryAssetId] = useState<string>("");
 
   const investmentBaseCurrency = useUiPreferencesStore((state) => state.investmentBaseCurrency);
   const setInvestmentBaseCurrency = useUiPreferencesStore((state) => state.setInvestmentBaseCurrency);
@@ -42,6 +46,8 @@ export default function InvestmentsPage() {
     return snapshots.filter((s) => s.currency === regionFilter);
   }, [snapshots, regionFilter]);
 
+  const historyAsset = assets?.find((a) => a.id === historyAssetId) ?? null;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -51,11 +57,8 @@ export default function InvestmentsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <AssetFormDialog />
-          <SnapshotFormDialog
-            referenceMonth={referenceMonth}
-            assets={assets ?? []}
-            existingSnapshots={snapshots}
-          />
+          <ContributionFormDialog assets={assets ?? []} />
+          <SnapshotFormDialog referenceMonth={referenceMonth} assets={assets ?? []} existingSnapshots={snapshots} />
         </div>
       </div>
 
@@ -67,21 +70,29 @@ export default function InvestmentsPage() {
         </div>
       </div>
 
-      <CurrencyBreakdown
-        summary={summary ?? null}
-        baseCurrency={investmentBaseCurrency}
-        isLoading={isSummaryLoading}
-      />
+      <CurrencyBreakdown summary={summary ?? null} baseCurrency={investmentBaseCurrency} isLoading={isSummaryLoading} />
 
       <PortfolioEvolutionChart baseCurrency={investmentBaseCurrency} />
 
       <div className="flex flex-col gap-3">
-        <RegionFilterTabs
-          availableCurrencies={availableCurrencies}
-          value={regionFilter}
-          onChange={setRegionFilter}
-        />
+        <RegionFilterTabs availableCurrencies={availableCurrencies} value={regionFilter} onChange={setRegionFilter} />
         <SnapshotList snapshots={filteredSnapshots} isLoading={isSnapshotsLoading} />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <Select value={historyAssetId} onValueChange={setHistoryAssetId}>
+          <SelectTrigger className="h-9 sm:w-64">
+            <SelectValue placeholder="Ver histórico de um ativo..." />
+          </SelectTrigger>
+          <SelectContent>
+            {assets?.map((asset) => (
+              <SelectItem key={asset.id} value={asset.id}>
+                {asset.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <ContributionHistoryList asset={historyAsset} />
       </div>
     </div>
   );

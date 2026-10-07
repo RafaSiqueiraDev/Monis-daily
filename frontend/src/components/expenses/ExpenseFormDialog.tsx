@@ -20,6 +20,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import { expenseSchema, type ExpenseFormInput, type ExpenseFormData } from "../../lib/validations/expense";
 import { useCreateDailyExpense } from "../../hooks/useDailyExpenses";
 import { useCategories } from "../../hooks/useCategories";
+import { useUiPreferencesStore } from "../../store/uiPreferencesStore";
+import { COUNTRIES } from "../../types/country";
 
 const defaultFormValues = (): ExpenseFormInput => ({
   description: "",
@@ -32,6 +34,8 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
   const [open, setOpen] = useState(false);
   const { data: categories } = useCategories();
   const createExpense = useCreateDailyExpense();
+  const selectedCountry = useUiPreferencesStore((state) => state.selectedCountry);
+  const countryInfo = COUNTRIES[selectedCountry];
 
   const {
     register,
@@ -44,8 +48,6 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
     defaultValues: defaultFormValues(),
   });
 
-  // handleSubmit já nos entrega os dados validados e transformados pelo
-  // Zod (amount como number, category_id normalizado) — não o input cru
   const onSubmit = (data: ExpenseFormData) => {
     createExpense.mutate(
       {
@@ -53,6 +55,8 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
         amount: data.amount,
         expense_date: data.expense_date,
         category_id: data.category_id ?? null,
+        country: selectedCountry,
+        currency: countryInfo.currency as any,
       },
       {
         onSuccess: () => {
@@ -66,7 +70,7 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
   const expenseCategories = categories?.filter((c) => c.kind === "daily" || c.kind === "variable");
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (next) reset(defaultFormValues()); }}>
       <DialogTrigger asChild>
         {trigger ?? (
           <Button>
@@ -79,7 +83,10 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nova despesa</DialogTitle>
-          <DialogDescription>Regista um gasto do dia a dia</DialogDescription>
+          <DialogDescription>
+            Regista um gasto do dia a dia — vai ser associado a {countryInfo.flag} {countryInfo.label} (
+            {countryInfo.currency})
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
@@ -91,7 +98,7 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="amount">Valor (€)</Label>
+              <Label htmlFor="amount">Valor ({countryInfo.currency})</Label>
               <Controller
                 name="amount"
                 control={control}
@@ -110,7 +117,7 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Categoria (opcional)</Label>
+            <Label>Categoria</Label>
             <Controller
               name="category_id"
               control={control}
@@ -133,13 +140,9 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
 
           <div className="mt-2 flex justify-end gap-2">
             <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancelar
-              </Button>
+              <Button type="button" variant="outline">Cancelar</Button>
             </DialogClose>
-            <Button type="submit" isLoading={createExpense.isPending}>
-              Guardar
-            </Button>
+            <Button type="submit" isLoading={createExpense.isPending}>Guardar</Button>
           </div>
         </form>
       </DialogContent>

@@ -22,6 +22,13 @@ export async function getCurrentUser(): Promise<UserRead> {
   return data;
 }
 
+export async function updateActiveCountries(countries: string[]): Promise<UserRead> {
+  const { data } = await apiClient.patch<UserRead>("/auth/me/countries", {
+    active_countries: countries,
+  });
+  return data;
+}
+
 export interface ForgotPasswordResponse {
   message: string;
   debug_token?: string | null;

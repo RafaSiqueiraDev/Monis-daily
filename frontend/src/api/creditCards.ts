@@ -1,8 +1,10 @@
 import { apiClient } from "./client";
 import type { CreditCardRead, CreditCardCreate } from "../types/creditCard";
 
-export async function listCreditCards(): Promise<CreditCardRead[]> {
-  const { data } = await apiClient.get<CreditCardRead[]>("/credit-cards");
+export async function listCreditCards(country?: string): Promise<CreditCardRead[]> {
+  const { data } = await apiClient.get<CreditCardRead[]>("/credit-cards", {
+    params: country ? { country } : undefined,
+  });
   return data;
 }
 

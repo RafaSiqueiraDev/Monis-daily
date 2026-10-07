@@ -23,6 +23,21 @@ export interface InvestmentSnapshotRead {
   contribution: number;
 }
 
+export interface InvestmentContributionRead {
+  id: string;
+  asset_id: string;
+  amount: number;
+  contribution_date: string;
+  note: string | null;
+  created_at: string;
+}
+
+export interface InvestmentContributionCreate {
+  amount: number | string;
+  contribution_date: string;
+  note?: string | null;
+}
+
 export interface InvestmentSnapshotCreate {
   asset_id: string;
   reference_month: string;

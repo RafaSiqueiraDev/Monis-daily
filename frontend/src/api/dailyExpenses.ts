@@ -4,6 +4,7 @@ import type { DailyExpenseRead, DailyExpenseCreate, DailyExpenseTotal } from "..
 export async function listDailyExpenses(params?: {
   date_from?: string;
   date_to?: string;
+  country?: string;
 }): Promise<DailyExpenseRead[]> {
   const { data } = await apiClient.get<DailyExpenseRead[]>("/daily-expenses", { params });
   return data;
@@ -21,6 +22,7 @@ export async function deleteDailyExpense(id: string): Promise<void> {
 export async function getDailyExpensesTotal(params: {
   date_from?: string;
   date_to?: string;
+  country?: string;
 }): Promise<DailyExpenseTotal> {
   const { data } = await apiClient.get<DailyExpenseTotal>("/daily-expenses/total", { params });
   return data;

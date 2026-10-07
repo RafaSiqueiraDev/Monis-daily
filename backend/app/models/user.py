@@ -1,8 +1,10 @@
 import uuid
 from datetime import datetime
+
 from sqlalchemy import String, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.core.database import Base
 
 
@@ -15,6 +17,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Países que o utilizador ativou na conta. Array de strings (não enum
+    # Postgres) para nunca precisarmos de migração de enum ao adicionar país novo.
+    active_countries: Mapped[list[str]] = mapped_column(
+        ARRAY(String(2)), default=lambda: ["PT"], server_default="{PT}", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
 

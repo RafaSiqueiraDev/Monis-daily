@@ -19,6 +19,7 @@ from app.schemas.user import (
     UserCreate,
     UserRead,
     Token,
+    UserCountriesUpdate,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     ResetPasswordRequest,
@@ -26,6 +27,8 @@ from app.schemas.user import (
 from app.services.email_service import send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["Autenticacao"])
+
+VALID_COUNTRY_CODES = {"PT", "BR"}
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -38,15 +41,11 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
     normalized_email = user_in.email.strip().lower()
 
-    result = await db.execute(
-        select(User).where(func.lower(User.email) == normalized_email)
-    )
+    result = await db.execute(select(User).where(func.lower(User.email) == normalized_email))
     existing_user = result.scalar_one_or_none()
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Este email já está registado",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Este email já está registado")
 
     new_user = User(
         name=user_in.name.strip(),
@@ -60,10 +59,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db),
-):
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(User).where(func.lower(User.email) ==
                            form_data.username.strip().lower())
@@ -86,18 +82,31 @@ async def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.patch("/me/countries", response_model=UserRead)
+async def update_active_countries(
+    payload: UserCountriesUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    cleaned = [c for c in dict.fromkeys(
+        payload.active_countries) if c in VALID_COUNTRY_CODES]
+    if not cleaned:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Seleciona pelo menos um país válido.")
+
+    current_user.active_countries = cleaned
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
 async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
-    """
-    Resposta sempre genérica e com 200, exista ou não o email — evita que
-    alguém use este endpoint para descobrir quais emails estão registados.
-    """
     normalized_email = payload.email.strip().lower()
     result = await db.execute(select(User).where(func.lower(User.email) == normalized_email))
     user = result.scalar_one_or_none()
 
     debug_token = None
-
     if user is not None:
         reset_token = create_password_reset_token(str(user.id))
         await send_password_reset_email(user.email, reset_token)
@@ -114,10 +123,8 @@ async def forgot_password(payload: ForgotPasswordRequest, db: AsyncSession = Dep
 async def reset_password(payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
     user_id_str = decode_password_reset_token(payload.token)
     if user_id_str is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token inválido ou expirado. Pede uma nova recuperação de password.",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Token inválido ou expirado.")
 
     try:
         user_id = uuid.UUID(user_id_str)

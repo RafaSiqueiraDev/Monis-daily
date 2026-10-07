@@ -23,8 +23,13 @@ class UserLogin(BaseModel):
 class UserRead(UserBase):
     id: uuid.UUID
     created_at: datetime
+    active_countries: list[str] = ["PT"]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserCountriesUpdate(BaseModel):
+    active_countries: list[str] = Field(min_length=1, max_length=5)
 
 
 class Token(BaseModel):
@@ -42,8 +47,6 @@ class ForgotPasswordRequest(BaseModel):
 
 class ForgotPasswordResponse(BaseModel):
     message: str
-    # Só preenchido em ambiente de desenvolvimento, para facilitar o teste
-    # local sem um provedor de email configurado. NUNCA preencher em produção.
     debug_token: Optional[str] = None
 
 

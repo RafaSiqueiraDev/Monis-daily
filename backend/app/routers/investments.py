@@ -7,7 +7,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
-from app.models.investment import InvestmentAsset, InvestmentSnapshot
+from app.models.investment import InvestmentAsset, InvestmentSnapshot, InvestmentContribution
 from app.models.enums import CurrencyCode
 from app.schemas.investment import (
     InvestmentAssetCreate,
@@ -16,6 +16,10 @@ from app.schemas.investment import (
     InvestmentSnapshotCreate,
     InvestmentSnapshotRead,
     PortfolioSummaryRead,
+)
+from app.schemas.investment_contribution import (
+    InvestmentContributionCreate,
+    InvestmentContributionRead,
 )
 from app.services.investment_service import (
     save_or_update_snapshot,
@@ -87,6 +91,62 @@ async def delete_asset(
 ):
     asset = await _get_owned_asset(asset_id, current_user, db)
     await db.delete(asset)
+    await db.commit()
+
+# --- APORTES (INVESTMENT CONTRIBUTIONS) ---
+
+
+@router.post("/contributions", response_model=InvestmentContributionRead, status_code=status.HTTP_201_CREATED)
+async def record_contribution(
+    payload: InvestmentContributionCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    asset = await _get_owned_asset(payload.asset_id, current_user, db)
+    contribution = InvestmentContribution(**payload.model_dump())
+    db.add(contribution)
+    await db.commit()
+    await db.refresh(contribution)
+    return contribution
+
+
+@router.get("/assets/{asset_id}/contributions", response_model=list[InvestmentContributionRead])
+async def list_asset_contributions(
+    asset_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_owned_asset(asset_id, current_user, db)
+    stmt = (
+        select(InvestmentContribution)
+        .where(InvestmentContribution.asset_id == asset_id)
+        .order_by(InvestmentContribution.contribution_date.desc(), InvestmentContribution.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+@router.delete("/contributions/{contribution_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_contribution(
+    contribution_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(InvestmentContribution)
+        .join(InvestmentAsset)
+        .where(
+            InvestmentContribution.id == contribution_id,
+            InvestmentAsset.user_id == current_user.id
+        )
+    )
+    result = await db.execute(stmt)
+    contribution = result.scalar_one_or_none()
+    if contribution is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Aporte nao encontrado"
+        )
+    await db.delete(contribution)
     await db.commit()
 
 # --- SNAPSHOTS MENSAIS ---

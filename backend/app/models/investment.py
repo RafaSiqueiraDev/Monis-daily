@@ -1,9 +1,12 @@
 import uuid
 from datetime import date, datetime
+from typing import Optional
+
 from sqlalchemy import String, Numeric, Date, DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.core.database import Base
 from app.models.enums import AssetCategory, CurrencyCode
 
@@ -26,6 +29,8 @@ class InvestmentAsset(Base):
     user: Mapped["User"] = relationship(back_populates="investment_assets")
     snapshots: Mapped[list["InvestmentSnapshot"]] = relationship(
         back_populates="asset", cascade="all, delete-orphan")
+    contributions: Mapped[list["InvestmentContribution"]] = relationship(
+        back_populates="asset", cascade="all, delete-orphan")
 
 
 class InvestmentSnapshot(Base):
@@ -45,3 +50,25 @@ class InvestmentSnapshot(Base):
     )
 
     asset: Mapped["InvestmentAsset"] = relationship(back_populates="snapshots")
+
+
+class InvestmentContribution(Base):
+    """Histórico de aportes individuais — distinto do snapshot mensal.
+    Cada aporte também atualiza (upsert) o snapshot do mês correspondente,
+    para o saldo consolidado refletir o aporte sem o utilizador ter de
+    editar manualmente o snapshot."""
+    __tablename__ = "investment_contributions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    asset_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey(
+        "investment_assets.id", ondelete="CASCADE"), nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False)
+    contribution_date: Mapped[date] = mapped_column(
+        Date, nullable=False, server_default=func.current_date())
+    note: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now())
+
+    asset: Mapped["InvestmentAsset"] = relationship(
+        back_populates="contributions")

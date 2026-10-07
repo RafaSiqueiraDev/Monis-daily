@@ -12,29 +12,23 @@ import { useUiPreferencesStore } from "../../store/uiPreferencesStore";
 
 const ALL_CATEGORIES = "all";
 
-export function ExpensesSection({
-  referenceMonth,
-  isPrimaryCountry,
-  currency,
-}: {
-  referenceMonth: string;
-  isPrimaryCountry: boolean;
-  currency: string;
-}) {
+export function ExpensesSection({ referenceMonth, currency }: { referenceMonth: string; currency: string }) {
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
   const hideAmounts = useUiPreferencesStore((state) => state.hideAmounts);
+  const selectedCountry = useUiPreferencesStore((state) => state.selectedCountry);
 
   const monthStart = format(startOfMonth(new Date(referenceMonth)), "yyyy-MM-dd");
   const monthEnd = format(endOfMonth(new Date(referenceMonth)), "yyyy-MM-dd");
 
-  const { data: expenses, isLoading } = useDailyExpenses(monthStart, monthEnd);
+  // Filtro real: a query já pede ao backend só as despesas do país ativo
+  const { data: expenses, isLoading } = useDailyExpenses(monthStart, monthEnd, selectedCountry);
   const { data: categories } = useCategories();
 
   const filteredExpenses = useMemo(() => {
-    if (!isPrimaryCountry || !expenses) return [];
+    if (!expenses) return [];
     if (categoryFilter === ALL_CATEGORIES) return expenses;
     return expenses.filter((e) => e.category_id === categoryFilter);
-  }, [expenses, categoryFilter, isPrimaryCountry]);
+  }, [expenses, categoryFilter]);
 
   const totalMonth = filteredExpenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
 
@@ -73,11 +67,7 @@ export function ExpensesSection({
         </CardContent>
       </Card>
 
-      <ExpenseList
-        expenses={filteredExpenses}
-        categories={categories ?? []}
-        isLoading={isLoading && isPrimaryCountry}
-      />
+      <ExpenseList expenses={filteredExpenses} categories={categories ?? []} isLoading={isLoading} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { CalendarClock, Undo2 } from "lucide-react";
+import { CalendarClock, Check, Undo2 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
 import { Badge } from "../ui/badge";
@@ -43,14 +43,15 @@ export function BillInstanceList({
           return (
             <div
               key={instance.id}
-              className="flex items-center justify-between gap-3 rounded-lg px-2 py-3 hover:bg-slate-50"
+              className="flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-slate-50"
             >
-              <div className="flex items-center gap-3">
+              {/* Bloco esquerdo: ícone + descrição/badge */}
+              <div className="flex min-w-0 flex-1 items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
                   <CalendarClock className="h-4 w-4" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{instance.description}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-900">{instance.description}</p>
                   <div className="flex items-center gap-2">
                     <p className="text-xs text-slate-500">Vence dia {instance.due_day}</p>
                     <Badge variant={isOverdue ? "destructive" : instance.status === "paid" ? "paid" : "pending"}>
@@ -60,27 +61,30 @@ export function BillInstanceList({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-900">
+              {/* Bloco direito: valor (largura fixa) + ação clara (largura fixa) + editar */}
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="w-24 shrink-0 text-right font-semibold tabular-nums text-slate-900">
                   {displayCurrency(Number(instance.amount ?? 0), hideAmounts)}
                 </span>
 
                 {instance.status === "pending" ? (
                   <Button
                     size="sm"
-                    variant="outline"
+                    className="w-24 shrink-0 justify-center gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 shadow-none border-0"
                     isLoading={isTogglePending}
                     onClick={() => markPaid.mutate({ id: instance.id, status: "paid" })}
                   >
-                    Pago
+                    <Check className="h-3.5 w-3.5" />
+                    Pagar
                   </Button>
                 ) : (
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="w-24 shrink-0 justify-center gap-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
                     isLoading={isTogglePending}
                     onClick={() => markPaid.mutate({ id: instance.id, status: "pending" })}
-                    title="Reverter para pendente"
+                    title="Voltar a marcar como pendente"
                   >
                     <Undo2 className="h-3.5 w-3.5" />
                     Desfazer
@@ -88,7 +92,9 @@ export function BillInstanceList({
                 )}
 
                 {template && (
-                  <RecurringBillEditDialog bill={template} currentInstance={instance} />
+                  <div className="w-8 shrink-0">
+                    <RecurringBillEditDialog bill={template} currentInstance={instance} />
+                  </div>
                 )}
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useAuthStore } from "../../store/authStore";
+import { useUiPreferencesStore } from "../../store/uiPreferencesStore";
 import { BottomNav } from "./BottomNav";
+import { OnboardingCountriesDialog } from "../onboarding/OnboardingCountriesDialog";
 
 interface NavItem {
   to: string;
@@ -59,9 +61,17 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppLayout() {
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const navigate = useNavigate();
   const userName = useAuthStore((state) => state.userName);
   const logout = useAuthStore((state) => state.logout);
+  const hasSeenOnboarding = useUiPreferencesStore((state) => state.hasSeenOnboarding);
+
+  useEffect(() => {
+    if (!hasSeenOnboarding) {
+      setOnboardingOpen(true);
+    }
+  }, [hasSeenOnboarding]);
 
   const handleLogout = () => {
     logout();
@@ -109,9 +119,7 @@ export function AppLayout() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-
             <NavList onNavigate={() => setMoreSheetOpen(false)} />
-
             <div className="border-t border-slate-200 p-3">
               <button
                 onClick={handleLogout}
@@ -143,6 +151,8 @@ export function AppLayout() {
       </div>
 
       <BottomNav onMoreClick={() => setMoreSheetOpen(true)} />
+
+      <OnboardingCountriesDialog open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
     </div>
   );
 }

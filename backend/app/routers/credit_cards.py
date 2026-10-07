@@ -1,6 +1,7 @@
 import uuid
 from datetime import date
 from decimal import Decimal
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.credit_card import CreditCard, CardInvoice, CardPurchase, CardInstallment
+from app.models.enums import CountryCode
 from app.schemas.credit_card import (
     CreditCardCreate,
     CreditCardUpdate,
@@ -52,11 +54,15 @@ async def create_card(
 
 @router.get("", response_model=list[CreditCardRead])
 async def list_cards(
+    country: Optional[CountryCode] = Query(
+        default=None, description="Filtrar por país (PT, BR)"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(CreditCard).where(CreditCard.user_id ==
-                                    current_user.id).order_by(CreditCard.name)
+    stmt = select(CreditCard).where(CreditCard.user_id == current_user.id)
+    if country is not None:
+        stmt = stmt.where(CreditCard.country == country)
+    stmt = stmt.order_by(CreditCard.name)
     result = await db.execute(stmt)
     return result.scalars().all()
 

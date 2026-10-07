@@ -1,6 +1,7 @@
 import uuid
 from datetime import date
 from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -11,7 +12,7 @@ from app.models.user import User
 from app.models.bill import DailyExpense
 from app.schemas.daily_expense import DailyExpenseCreate, DailyExpenseUpdate, DailyExpenseRead
 
-router = APIRouter(prefix="/daily-expenses", tags=["Despesas Diarias"])
+router = APIRouter(prefix="/daily-expenses", tags=["Despesas Diárias"])
 
 
 @router.post("", response_model=DailyExpenseRead, status_code=status.HTTP_201_CREATED)
@@ -29,18 +30,22 @@ async def create_daily_expense(
 
 @router.get("", response_model=list[DailyExpenseRead])
 async def list_daily_expenses(
-    date_from: date | None = Query(
-        default=None, description="Filtra a partir desta data (inclusive)"),
-    date_to: date | None = Query(
-        default=None, description="Filtra ate esta data (inclusive)"),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
+    country: str | None = Query(
+        default=None, description="Filtra por país, ex: PT ou BR"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     stmt = select(DailyExpense).where(DailyExpense.user_id == current_user.id)
+
     if date_from is not None:
         stmt = stmt.where(DailyExpense.expense_date >= date_from)
     if date_to is not None:
         stmt = stmt.where(DailyExpense.expense_date <= date_to)
+    if country is not None:
+        stmt = stmt.where(DailyExpense.country == country)
+
     stmt = stmt.order_by(DailyExpense.expense_date.desc(),
                          DailyExpense.created_at.desc())
     result = await db.execute(stmt)
@@ -51,18 +56,24 @@ async def list_daily_expenses(
 async def get_daily_expenses_total(
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),
+    country: str | None = Query(default=None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     stmt = select(func.coalesce(func.sum(DailyExpense.amount), 0)).where(
         DailyExpense.user_id == current_user.id
     )
+
     if date_from is not None:
         stmt = stmt.where(DailyExpense.expense_date >= date_from)
     if date_to is not None:
         stmt = stmt.where(DailyExpense.expense_date <= date_to)
+    if country is not None:
+        stmt = stmt.where(DailyExpense.country == country)
+
     result = await db.execute(stmt)
     total: Decimal = result.scalar_one()
+
     return {"total": total, "date_from": date_from, "date_to": date_to}
 
 
@@ -74,7 +85,7 @@ async def _get_owned_expense(expense_id: uuid.UUID, current_user: User, db: Asyn
     expense = result.scalar_one_or_none()
     if expense is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Despesa nao encontrada")
+                            detail="Despesa não encontrada")
     return expense
 
 

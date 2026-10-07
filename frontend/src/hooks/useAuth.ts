@@ -1,28 +1,28 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { login, register, getCurrentUser } from "../api/auth";
+import { login, register, getCurrentUser, updateActiveCountries } from "../api/auth";
 import { useAuthStore } from "../store/authStore";
+import { useUiPreferencesStore } from "../store/uiPreferencesStore";
 import type { LoginFormData, RegisterFormData } from "../lib/validations/auth";
+import type { CountryCode } from "../types/country";
 
 export function useLogin() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const setActiveCountries = useUiPreferencesStore((state) => state.setActiveCountries);
 
   return useMutation({
     mutationFn: async (credentials: LoginFormData) => {
       const tokenResponse = await login(credentials.email, credentials.password);
-
-      // o /auth/login só devolve o token — precisamos de um segundo
-      // pedido a /auth/me para saber o nome/id do utilizador. Fazemos
-      // isto aqui dentro da mutation para o authStore já ficar completo
-      // de uma vez, em vez de o componente ter de encadear dois hooks.
       useAuthStore.setState({ token: tokenResponse.access_token });
       const user = await getCurrentUser();
-
       return { token: tokenResponse.access_token, user };
     },
     onSuccess: ({ token, user }) => {
       setAuth(token, user.id, user.name);
+      // sincroniza os países ativos vindos do backend — fonte da verdade
+      // é a conta, não o localStorage, para funcionar entre dispositivos
+      setActiveCountries((user.active_countries ?? ["PT"]) as CountryCode[]);
       navigate("/");
     },
   });
@@ -34,9 +34,18 @@ export function useRegister() {
   return useMutation({
     mutationFn: (payload: Omit<RegisterFormData, "confirmPassword">) => register(payload),
     onSuccess: () => {
-      // depois de registar, mandamos para o login em vez de autenticar
-      // automaticamente — mantém o fluxo explícito e simples de seguir
       navigate("/login?registered=true");
+    },
+  });
+}
+
+export function useUpdateActiveCountries() {
+  const setActiveCountries = useUiPreferencesStore((state) => state.setActiveCountries);
+
+  return useMutation({
+    mutationFn: (countries: CountryCode[]) => updateActiveCountries(countries),
+    onSuccess: (user) => {
+      setActiveCountries((user.active_countries ?? ["PT"]) as CountryCode[]);
     },
   });
 }
