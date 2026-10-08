@@ -24,6 +24,7 @@ class UserRead(UserBase):
     id: uuid.UUID
     created_at: datetime
     active_countries: list[str] = ["PT"]
+    onboarding_completed: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

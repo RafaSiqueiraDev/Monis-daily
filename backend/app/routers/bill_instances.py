@@ -1,5 +1,6 @@
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,7 +13,7 @@ from app.models.bill import BillInstance, RecurringBill
 from app.models.enums import PaymentStatus
 from app.schemas.bill_instance import BillInstanceUpdate, BillInstanceRead
 
-router = APIRouter(prefix="/bill-instances", tags=["Instancias de Contas"])
+router = APIRouter(prefix="/bill-instances", tags=["Instâncias de Contas"])
 
 
 def _to_read_schema(instance: BillInstance) -> BillInstanceRead:
@@ -27,13 +28,13 @@ def _to_read_schema(instance: BillInstance) -> BillInstanceRead:
         due_day=instance.recurring_bill.due_day,
         country=instance.recurring_bill.country,
         currency=instance.recurring_bill.currency,
+        category_id=instance.recurring_bill.category_id,
     )
 
 
 @router.get("", response_model=list[BillInstanceRead])
 async def list_bill_instances(
-    reference_month: date | None = Query(
-        default=None, description="Ex: 2026-10-01"),
+    reference_month: date | None = Query(default=None),
     status_filter: PaymentStatus | None = Query(default=None, alias="status"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -44,12 +45,15 @@ async def list_bill_instances(
         .where(RecurringBill.user_id == current_user.id)
         .options(selectinload(BillInstance.recurring_bill))
     )
+
     if reference_month is not None:
         stmt = stmt.where(BillInstance.reference_month ==
                           reference_month.replace(day=1))
     if status_filter is not None:
         stmt = stmt.where(BillInstance.status == status_filter)
+
     stmt = stmt.order_by(RecurringBill.due_day)
+
     result = await db.execute(stmt)
     instances = result.scalars().all()
     return [_to_read_schema(inst) for inst in instances]
@@ -65,7 +69,7 @@ async def _get_owned_instance(instance_id: uuid.UUID, current_user: User, db: As
     instance = result.scalar_one_or_none()
     if instance is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Instancia nao encontrada")
+                            detail="Instância não encontrada")
     return instance
 
 
@@ -86,6 +90,8 @@ async def update_bill_instance(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from datetime import datetime, timezone
+
     instance = await _get_owned_instance(instance_id, current_user, db)
     update_data = payload.model_dump(exclude_unset=True)
 

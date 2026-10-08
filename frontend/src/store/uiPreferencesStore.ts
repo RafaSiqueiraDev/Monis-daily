@@ -11,9 +11,10 @@ interface UiPreferencesState {
   activeCountries: CountryCode[];
   selectedCountry: CountryCode;
   setSelectedCountry: (country: CountryCode) => void;
-  setActiveCountries: (countries: CountryCode[]) => void;
-  hasSeenOnboarding: boolean;
-  markOnboardingSeen: () => void;
+  /** true = já sabemos com certeza (vindo do backend) que o onboarding foi concluído. */
+  onboardingCompleted: boolean;
+  /** Sincroniza o estado local com a resposta mais recente do servidor. */
+  syncFromServer: (countries: CountryCode[], onboardingCompleted: boolean) => void;
 }
 
 export const useUiPreferencesStore = create<UiPreferencesState>()(
@@ -23,20 +24,18 @@ export const useUiPreferencesStore = create<UiPreferencesState>()(
       toggleHideAmounts: () => set((state) => ({ hideAmounts: !state.hideAmounts })),
       investmentBaseCurrency: "EUR",
       setInvestmentBaseCurrency: (currency) => set({ investmentBaseCurrency: currency }),
-      // default: só Portugal ativo — o onboarding é que oferece adicionar o Brasil
       activeCountries: ["PT"],
       selectedCountry: "PT",
       setSelectedCountry: (country) => set({ selectedCountry: country }),
-      setActiveCountries: (countries) => {
+      onboardingCompleted: false,
+      syncFromServer: (countries, onboardingCompleted) => {
         const current = get().selectedCountry;
         set({
           activeCountries: countries,
-          // se o país selecionado deixou de estar ativo, cai para o primeiro disponível
           selectedCountry: countries.includes(current) ? current : countries[0],
+          onboardingCompleted,
         });
       },
-      hasSeenOnboarding: false,
-      markOnboardingSeen: () => set({ hasSeenOnboarding: true }),
     }),
     { name: "financas-ui-preferences" }
   )

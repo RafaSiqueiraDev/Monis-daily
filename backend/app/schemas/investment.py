@@ -12,16 +12,32 @@ class InvestmentAssetBase(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     category: AssetCategory
     currency: CurrencyCode
+    institution: Optional[str] = Field(default=None, max_length=120)
+    maturity_date: Optional[date] = None
+    ticker: Optional[str] = Field(default=None, max_length=20)
+    shares_quantity: Optional[Decimal] = Field(
+        default=None, gt=0, decimal_places=6)
+    average_price: Optional[Decimal] = Field(
+        default=None, gt=0, decimal_places=4)
 
 
 class InvestmentAssetCreate(InvestmentAssetBase):
-    pass
+    # Se preenchido, cria também um InvestmentSnapshot inicial com este saldo
+    initial_balance: Optional[Decimal] = Field(
+        default=None, ge=0, decimal_places=2)
 
 
 class InvestmentAssetUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=120)
     category: Optional[AssetCategory] = None
     currency: Optional[CurrencyCode] = None
+    institution: Optional[str] = Field(default=None, max_length=120)
+    maturity_date: Optional[date] = None
+    ticker: Optional[str] = Field(default=None, max_length=20)
+    shares_quantity: Optional[Decimal] = Field(
+        default=None, gt=0, decimal_places=6)
+    average_price: Optional[Decimal] = Field(
+        default=None, gt=0, decimal_places=4)
 
 
 class InvestmentAssetRead(InvestmentAssetBase):
@@ -29,6 +45,16 @@ class InvestmentAssetRead(InvestmentAssetBase):
     user_id: uuid.UUID
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+class InvestmentAssetBulkCreate(BaseModel):
+    items: list[InvestmentAssetCreate] = Field(min_length=1, max_length=20)
+
+
+class ContributionsTotal(BaseModel):
+    total: Decimal
+    reference_month: date
+
 
 # --- SNAPSHOTS MENSAIS ---
 
@@ -47,6 +73,7 @@ class InvestmentSnapshotRead(InvestmentSnapshotBase):
     id: uuid.UUID
     asset_id: uuid.UUID
     model_config = ConfigDict(from_attributes=True)
+
 
 # --- ESTRUTURA MULTI-MOEDA E CONSOLIDAÇÃO ---
 

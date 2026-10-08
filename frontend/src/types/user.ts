@@ -4,6 +4,7 @@ export interface UserRead {
   email: string;
   created_at: string;
   active_countries: string[];
+  onboarding_completed: boolean;
 }
 
 export interface UserCreate {

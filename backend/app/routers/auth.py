@@ -40,10 +40,8 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         )
 
     normalized_email = user_in.email.strip().lower()
-
     result = await db.execute(select(User).where(func.lower(User.email) == normalized_email))
-    existing_user = result.scalar_one_or_none()
-    if existing_user:
+    if result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Este email já está registado")
 
@@ -95,6 +93,8 @@ async def update_active_countries(
                             detail="Seleciona pelo menos um país válido.")
 
     current_user.active_countries = cleaned
+    # Qualquer submissão deste endpoint (mesmo "só um país") conclui o onboarding.
+    current_user.onboarding_completed = True
     await db.commit()
     await db.refresh(current_user)
     return current_user

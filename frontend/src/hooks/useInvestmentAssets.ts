@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listInvestmentAssets, createInvestmentAsset } from "../api/investmentAssets";
+import { listInvestmentAssets, createInvestmentAsset, bulkCreateInvestmentAssets } from "../api/investmentAssets";
 import type { InvestmentAssetCreate } from "../types/investment";
 
 export function useInvestmentAssets() {
@@ -16,6 +16,18 @@ export function useCreateInvestmentAsset() {
     mutationFn: (payload: InvestmentAssetCreate) => createInvestmentAsset(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["investment-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["investment-summary"] });
+    },
+  });
+}
+
+export function useBulkCreateInvestmentAssets() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (items: InvestmentAssetCreate[]) => bulkCreateInvestmentAssets(items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["investment-assets"] });
+      queryClient.invalidateQueries({ queryKey: ["investment-summary"] });
     },
   });
 }

@@ -26,6 +26,7 @@ export interface RecurringBillUpdate {
   description?: string;
   due_day?: number;
   default_amount?: number;
+  category_id?: string | null;
   active?: boolean;
   active_until?: string | null;
 }
@@ -39,6 +40,7 @@ export interface BillInstanceRead {
   paid_at: string | null;
   description: string;
   due_day: number;
+  category_id: string | null;
 }
 
 export interface GenerateMonthResult {

@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import String, Numeric, Date, DateTime, ForeignKey, UniqueConstraint, func
@@ -23,6 +24,14 @@ class InvestmentAsset(Base):
         SqlEnum(AssetCategory, name="asset_category"), nullable=False)
     currency: Mapped[CurrencyCode] = mapped_column(
         SqlEnum(CurrencyCode, name="currency_code"), nullable=False)
+    institution: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True)
+    maturity_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    ticker: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    shares_quantity: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(18, 6), nullable=True)
+    average_price: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(14, 4), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
 
@@ -53,10 +62,6 @@ class InvestmentSnapshot(Base):
 
 
 class InvestmentContribution(Base):
-    """Histórico de aportes individuais — distinto do snapshot mensal.
-    Cada aporte também atualiza (upsert) o snapshot do mês correspondente,
-    para o saldo consolidado refletir o aporte sem o utilizador ter de
-    editar manualmente o snapshot."""
     __tablename__ = "investment_contributions"
 
     id: Mapped[uuid.UUID] = mapped_column(

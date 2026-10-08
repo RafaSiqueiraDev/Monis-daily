@@ -5,6 +5,7 @@ import { CurrencySelector } from "../components/investments/CurrencySelector";
 import { RegionFilterTabs } from "../components/investments/RegionFilterTabs";
 import { PortfolioEvolutionChart } from "../components/investments/PortfolioEvolutionChart";
 import { AssetFormDialog } from "../components/investments/AssetFormDialog";
+import { BulkAddAssetsDialog } from "../components/investments/BulkAddAssetsDialog";
 import { SnapshotFormDialog } from "../components/investments/SnapshotFormDialog";
 import { SnapshotList } from "../components/investments/SnapshotList";
 import { ContributionFormDialog } from "../components/investments/ContributionFormDialog";
@@ -25,15 +26,9 @@ export default function InvestmentsPage() {
   const investmentBaseCurrency = useUiPreferencesStore((state) => state.investmentBaseCurrency);
   const setInvestmentBaseCurrency = useUiPreferencesStore((state) => state.setInvestmentBaseCurrency);
 
-  const { data: summary, isLoading: isSummaryLoading } = useInvestmentSummary(
-    referenceMonth,
-    investmentBaseCurrency
-  );
+  const { data: summary, isLoading: isSummaryLoading } = useInvestmentSummary(referenceMonth, investmentBaseCurrency);
   const { data: assets } = useInvestmentAssets();
-  const { data: snapshots, isLoading: isSnapshotsLoading } = useInvestmentSnapshotsForMonth(
-    assets ?? [],
-    referenceMonth
-  );
+  const { data: snapshots, isLoading: isSnapshotsLoading } = useInvestmentSnapshotsForMonth(assets ?? [], referenceMonth);
 
   const availableCurrencies = useMemo(() => {
     const unique = new Set<CurrencyCode>();
@@ -57,6 +52,7 @@ export default function InvestmentsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <AssetFormDialog />
+          <BulkAddAssetsDialog />
           <ContributionFormDialog assets={assets ?? []} />
           <SnapshotFormDialog referenceMonth={referenceMonth} assets={assets ?? []} existingSnapshots={snapshots} />
         </div>
@@ -86,9 +82,7 @@ export default function InvestmentsPage() {
           </SelectTrigger>
           <SelectContent>
             {assets?.map((asset) => (
-              <SelectItem key={asset.id} value={asset.id}>
-                {asset.name}
-              </SelectItem>
+              <SelectItem key={asset.id} value={asset.id}>{asset.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>

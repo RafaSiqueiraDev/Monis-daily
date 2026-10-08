@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func as sa_func
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -13,6 +13,8 @@ from app.schemas.investment import (
     InvestmentAssetCreate,
     InvestmentAssetUpdate,
     InvestmentAssetRead,
+    InvestmentAssetBulkCreate,
+    ContributionsTotal,
     InvestmentSnapshotCreate,
     InvestmentSnapshotRead,
     PortfolioSummaryRead,
@@ -50,11 +52,53 @@ async def create_asset(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    asset = InvestmentAsset(**payload.model_dump(), user_id=current_user.id)
+    data = payload.model_dump(exclude={"initial_balance"})
+    asset = InvestmentAsset(**data, user_id=current_user.id)
     db.add(asset)
+    await db.flush()
+
+    if payload.initial_balance is not None and payload.initial_balance > 0:
+        reference_month = date.today().replace(day=1)
+        db.add(InvestmentSnapshot(
+            asset_id=asset.id,
+            reference_month=reference_month,
+            balance=payload.initial_balance,
+            contribution=0,
+        ))
+
     await db.commit()
     await db.refresh(asset)
     return asset
+
+
+@router.post("/assets/bulk", response_model=list[InvestmentAssetRead], status_code=status.HTTP_201_CREATED)
+async def bulk_create_assets(
+    payload: InvestmentAssetBulkCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    created: list[InvestmentAsset] = []
+    reference_month = date.today().replace(day=1)
+
+    for item in payload.items:
+        data = item.model_dump(exclude={"initial_balance"})
+        asset = InvestmentAsset(**data, user_id=current_user.id)
+        db.add(asset)
+        await db.flush()
+
+        if item.initial_balance is not None and item.initial_balance > 0:
+            db.add(InvestmentSnapshot(
+                asset_id=asset.id,
+                reference_month=reference_month,
+                balance=item.initial_balance,
+                contribution=0,
+            ))
+        created.append(asset)
+
+    await db.commit()
+    for asset in created:
+        await db.refresh(asset)
+    return created
 
 
 @router.get("/assets", response_model=list[InvestmentAssetRead])
@@ -124,6 +168,33 @@ async def list_asset_contributions(
     )
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+@router.get("/contributions/total", response_model=ContributionsTotal)
+async def get_contributions_total(
+    reference_month: date = Query(..., description="Ex: 2026-10-01"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    month_start = reference_month.replace(day=1)
+    if month_start.month == 12:
+        month_end = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        month_end = month_start.replace(month=month_start.month + 1)
+
+    stmt = (
+        select(sa_func.coalesce(sa_func.sum(InvestmentContribution.amount), 0))
+        .select_from(InvestmentContribution)
+        .join(InvestmentAsset, InvestmentContribution.asset_id == InvestmentAsset.id)
+        .where(
+            InvestmentAsset.user_id == current_user.id,
+            InvestmentContribution.contribution_date >= month_start,
+            InvestmentContribution.contribution_date < month_end,
+        )
+    )
+    result = await db.execute(stmt)
+    total = result.scalar_one()
+    return ContributionsTotal(total=total, reference_month=month_start)
 
 
 @router.delete("/contributions/{contribution_id}", status_code=status.HTTP_204_NO_CONTENT)

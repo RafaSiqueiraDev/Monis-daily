@@ -24,5 +24,6 @@ class BillInstanceRead(BaseModel):
     due_day: int
     country: CountryCode
     currency: CurrencyCode
+    category_id: Optional[uuid.UUID] = None
 
     model_config = ConfigDict(from_attributes=True)

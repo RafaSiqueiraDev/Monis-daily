@@ -9,7 +9,7 @@ import type { CountryCode } from "../types/country";
 export function useLogin() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const setActiveCountries = useUiPreferencesStore((state) => state.setActiveCountries);
+  const syncFromServer = useUiPreferencesStore((state) => state.syncFromServer);
 
   return useMutation({
     mutationFn: async (credentials: LoginFormData) => {
@@ -20,9 +20,7 @@ export function useLogin() {
     },
     onSuccess: ({ token, user }) => {
       setAuth(token, user.id, user.name);
-      // sincroniza os países ativos vindos do backend — fonte da verdade
-      // é a conta, não o localStorage, para funcionar entre dispositivos
-      setActiveCountries((user.active_countries ?? ["PT"]) as CountryCode[]);
+      syncFromServer((user.active_countries ?? ["PT"]) as CountryCode[], user.onboarding_completed);
       navigate("/");
     },
   });
@@ -30,22 +28,19 @@ export function useLogin() {
 
 export function useRegister() {
   const navigate = useNavigate();
-
   return useMutation({
     mutationFn: (payload: Omit<RegisterFormData, "confirmPassword">) => register(payload),
-    onSuccess: () => {
-      navigate("/login?registered=true");
-    },
+    onSuccess: () => navigate("/login?registered=true"),
   });
 }
 
 export function useUpdateActiveCountries() {
-  const setActiveCountries = useUiPreferencesStore((state) => state.setActiveCountries);
+  const syncFromServer = useUiPreferencesStore((state) => state.syncFromServer);
 
   return useMutation({
     mutationFn: (countries: CountryCode[]) => updateActiveCountries(countries),
     onSuccess: (user) => {
-      setActiveCountries((user.active_countries ?? ["PT"]) as CountryCode[]);
+      syncFromServer((user.active_countries ?? ["PT"]) as CountryCode[], user.onboarding_completed);
     },
   });
 }

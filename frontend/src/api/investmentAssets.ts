@@ -10,3 +10,10 @@ export async function createInvestmentAsset(payload: InvestmentAssetCreate): Pro
   const { data } = await apiClient.post<InvestmentAssetRead>("/investments/assets", payload);
   return data;
 }
+
+export async function bulkCreateInvestmentAssets(
+  items: InvestmentAssetCreate[]
+): Promise<InvestmentAssetRead[]> {
+  const { data } = await apiClient.post<InvestmentAssetRead[]>("/investments/assets/bulk", { items });
+  return data;
+}

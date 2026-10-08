@@ -21,7 +21,17 @@ export function BillInstanceList({
   const markPaid = useMarkBillInstancePaid();
   const hideAmounts = useUiPreferencesStore((state) => state.hideAmounts);
   const today = new Date().getDate();
-  const sorted = [...instances].sort((a, b) => a.due_day - b.due_day);
+
+  // Ordenação: Pendentes primeiro (por dia asc), Pagas em baixo (por dia asc)
+  const sorted = [...instances].sort((a, b) => {
+    const aIsPaid = a.status === "paid";
+    const bIsPaid = b.status === "paid";
+
+    if (aIsPaid !== bIsPaid) {
+      return aIsPaid ? 1 : -1;
+    }
+    return a.due_day - b.due_day;
+  });
 
   return (
     <Card>
@@ -61,7 +71,7 @@ export function BillInstanceList({
                 </div>
               </div>
 
-              {/* Bloco direito: valor (largura fixa) + ação clara (largura fixa) + editar */}
+              {/* Bloco direito: valor + ação + editar */}
               <div className="flex shrink-0 items-center gap-2">
                 <span className="w-24 shrink-0 text-right font-semibold tabular-nums text-slate-900">
                   {displayCurrency(Number(instance.amount ?? 0), hideAmounts)}

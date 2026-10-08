@@ -1,15 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Receipt,
-  TrendingUp,
-  CreditCard,
-  LineChart,
-  Scale,
-  LogOut,
-  X,
-  Wallet,
+  LayoutDashboard, Receipt, TrendingUp, CreditCard, LineChart, Scale, LogOut, X, Wallet,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useAuthStore } from "../../store/authStore";
@@ -17,12 +9,7 @@ import { useUiPreferencesStore } from "../../store/uiPreferencesStore";
 import { BottomNav } from "./BottomNav";
 import { OnboardingCountriesDialog } from "../onboarding/OnboardingCountriesDialog";
 
-interface NavItem {
-  to: string;
-  label: string;
-  icon: typeof LayoutDashboard;
-  end?: boolean;
-}
+interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; }
 
 const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -37,20 +24,11 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
       {navItems.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-              isActive
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            )
-          }
-        >
+        <NavLink key={item.to} to={item.to} end={item.end} onClick={onNavigate}
+          className={({ isActive }) => cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            isActive ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          )}>
           <item.icon className="h-[18px] w-[18px]" />
           {item.label}
         </NavLink>
@@ -61,22 +39,12 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppLayout() {
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const navigate = useNavigate();
   const userName = useAuthStore((state) => state.userName);
   const logout = useAuthStore((state) => state.logout);
-  const hasSeenOnboarding = useUiPreferencesStore((state) => state.hasSeenOnboarding);
+  const onboardingCompleted = useUiPreferencesStore((state) => state.onboardingCompleted);
 
-  useEffect(() => {
-    if (!hasSeenOnboarding) {
-      setOnboardingOpen(true);
-    }
-  }, [hasSeenOnboarding]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const handleLogout = () => { logout(); navigate("/login"); };
 
   return (
     <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-zinc-50">
@@ -89,17 +57,13 @@ export function AppLayout() {
             Monis Daily
           </span>
         </div>
-
         <NavList />
-
         <div className="border-t border-slate-200 p-3">
           <div className="flex items-center justify-between rounded-lg px-3 py-2">
             <p className="truncate text-sm font-medium text-slate-900">{userName ?? "Utilizador"}</p>
-            <button
-              onClick={handleLogout}
+            <button onClick={handleLogout}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-red-600"
-              title="Terminar sessão"
-            >
+              title="Terminar sessão">
               <LogOut className="h-4 w-4" />
             </button>
           </div>
@@ -112,19 +76,15 @@ export function AppLayout() {
           <div className="absolute inset-x-0 bottom-0 flex max-h-[80vh] flex-col rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-xl">
             <div className="flex items-center justify-between px-4 py-4">
               <span className="text-base font-bold tracking-tight text-slate-900">Mais opções</span>
-              <button
-                onClick={() => setMoreSheetOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-              >
+              <button onClick={() => setMoreSheetOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <NavList onNavigate={() => setMoreSheetOpen(false)} />
             <div className="border-t border-slate-200 p-3">
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
+              <button onClick={handleLogout}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50">
                 <LogOut className="h-[18px] w-[18px]" />
                 Terminar sessão
               </button>
@@ -144,7 +104,6 @@ export function AppLayout() {
             </span>
           </div>
         </header>
-
         <main className="w-full max-w-full overflow-x-hidden px-4 py-4 pb-24 sm:px-6 sm:py-6 lg:px-8 lg:py-8 lg:pb-8">
           <Outlet />
         </main>
@@ -152,7 +111,9 @@ export function AppLayout() {
 
       <BottomNav onMoreClick={() => setMoreSheetOpen(true)} />
 
-      <OnboardingCountriesDialog open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
+      {/* Controlado diretamente por onboardingCompleted vindo do servidor —
+          sem useEffect/estado local, elimina a janela de "pisca e reaparece". */}
+      <OnboardingCountriesDialog open={!onboardingCompleted} />
     </div>
   );
 }
