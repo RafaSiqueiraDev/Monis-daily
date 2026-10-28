@@ -1,7 +1,10 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
 from app.routers import (
     auth,
     categories,
@@ -50,9 +53,18 @@ app.include_router(investments.router)
 
 
 @app.get("/health")
-async def health_check():
+async def health_check(db: AsyncSession = Depends(get_db)):
+    db_status = "ok"
+    try:
+        # Query mínima só para "acordar" o compute do Neon e confirmar
+        # que a ligação está viva — sem tocar em nenhuma tabela real.
+        await db.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "unreachable"
+
     return {
         "status": "ok",
         "environment": settings.ENVIRONMENT,
         "project": settings.PROJECT_NAME,
+        "database": db_status,
     }
