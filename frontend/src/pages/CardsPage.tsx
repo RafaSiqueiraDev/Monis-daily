@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { format, startOfMonth } from "date-fns";
 import { MonthPicker } from "../components/ui/month-picker";
 import { Skeleton } from "../components/ui/skeleton";
@@ -13,21 +13,18 @@ import { useUiPreferencesStore } from "../store/uiPreferencesStore";
 
 export default function CardsPage() {
   const [referenceMonth, setReferenceMonth] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  // Escolha explícita do utilizador; pode ficar "órfã" ao mudar de país ou apagar o cartão.
+  const [preferredCardId, setSelectedCardId] = useState<string | null>(null);
 
   const selectedCountry = useUiPreferencesStore((state) => state.selectedCountry);
 
   // Filtro real: o país ativo vai como query param, não como bloqueio local
   const { data: cards = [], isLoading: isCardsLoading } = useCreditCards(selectedCountry);
 
-  useEffect(() => {
-    if (cards.length === 0) {
-      if (selectedCardId !== null) setSelectedCardId(null);
-      return;
-    }
-    const stillExists = cards.some((c) => c.id === selectedCardId);
-    if (!stillExists) setSelectedCardId(cards[0].id);
-  }, [cards, selectedCardId]);
+  // Derivado em render (sem useEffect): usa a escolha se ainda existir, senão o primeiro cartão.
+  const selectedCardId = cards.some((c) => c.id === preferredCardId)
+    ? preferredCardId
+    : (cards[0]?.id ?? null);
 
   const { data: currentInvoice, isLoading: isInvoicesLoading } = useCardInvoice(selectedCardId, referenceMonth);
 

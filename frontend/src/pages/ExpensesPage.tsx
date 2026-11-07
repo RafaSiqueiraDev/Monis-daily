@@ -51,7 +51,6 @@ export default function ExpensesPage() {
             <TabsContent value="extras">
               <ExpensesSection
                 referenceMonth={referenceMonth}
-                isPrimaryCountry={isPrimaryCountry}
                 currency={currency}
               />
             </TabsContent>
@@ -77,7 +76,6 @@ export default function ExpensesPage() {
           <div className="flex flex-col gap-4">
             <ExpensesSection
               referenceMonth={referenceMonth}
-              isPrimaryCountry={isPrimaryCountry}
               currency={currency}
             />
           </div>

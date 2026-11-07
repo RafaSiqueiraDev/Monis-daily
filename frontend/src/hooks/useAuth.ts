@@ -19,7 +19,7 @@ export function useLogin() {
       return { token: tokenResponse.access_token, user };
     },
     onSuccess: ({ token, user }) => {
-      setAuth(token, user.id, user.name);
+      setAuth(token, user);
       syncFromServer((user.active_countries ?? ["PT"]) as CountryCode[], user.onboarding_completed);
       navigate("/");
     },

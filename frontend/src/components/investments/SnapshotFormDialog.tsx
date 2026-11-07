@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import {
@@ -44,14 +44,13 @@ export function SnapshotFormDialog({ referenceMonth, assets, existingSnapshots }
     handleSubmit,
     control,
     reset,
-    watch,
     formState: { errors },
-  } = useForm<InvestmentSnapshotFormInput>({
+  } = useForm<InvestmentSnapshotFormInput, unknown, InvestmentSnapshotFormData>({
     resolver: zodResolver(investmentSnapshotSchema),
     defaultValues: defaultValues(),
   });
 
-  const selectedAssetId = watch("asset_id");
+  const selectedAssetId = useWatch({ control, name: "asset_id" });
 
   useEffect(() => {
     const existing = existingSnapshots.find((s) => s.asset_id === selectedAssetId);
@@ -103,7 +102,7 @@ export function SnapshotFormDialog({ referenceMonth, assets, existingSnapshots }
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Ativo</Label>
             <Controller

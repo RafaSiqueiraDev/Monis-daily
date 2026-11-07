@@ -15,6 +15,9 @@ export interface IncomeCreate {
 }
 
 export interface IncomeUpdate {
+  description?: string;
+  amount?: number;
+  reference_month?: string;
   received?: boolean;
 }
 

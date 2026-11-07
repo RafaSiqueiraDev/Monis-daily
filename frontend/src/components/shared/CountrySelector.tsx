@@ -3,13 +3,25 @@ import { Settings2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { COUNTRIES, ALL_COUNTRY_CODES } from "../../types/country";
 import { useUiPreferencesStore } from "../../store/uiPreferencesStore";
+import { useUpdateActiveCountries } from "../../hooks/useAuth";
+import type { CountryCode } from "../../types/country";
 
 export function CountrySelector() {
   const [managing, setManaging] = useState(false);
   const activeCountries = useUiPreferencesStore((state) => state.activeCountries);
   const selectedCountry = useUiPreferencesStore((state) => state.selectedCountry);
   const setSelectedCountry = useUiPreferencesStore((state) => state.setSelectedCountry);
-  const toggleActiveCountry = useUiPreferencesStore((state) => state.toggleActiveCountry);
+  const updateCountries = useUpdateActiveCountries();
+
+  // O servidor é a fonte de verdade: o PATCH devolve o utilizador e o
+  // useUpdateActiveCountries sincroniza a store (tal como no onboarding).
+  const toggleActiveCountry = (code: CountryCode) => {
+    const next = activeCountries.includes(code)
+      ? activeCountries.filter((c) => c !== code)
+      : [...activeCountries, code];
+    if (next.length === 0) return; // o backend exige pelo menos um país
+    updateCountries.mutate(next);
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -53,6 +65,7 @@ export function CountrySelector() {
                 <input
                   type="checkbox"
                   checked={isChecked}
+                  disabled={updateCountries.isPending || (isChecked && activeCountries.length === 1)}
                   onChange={() => toggleActiveCountry(code)}
                   className="h-4 w-4 accent-slate-900"
                 />

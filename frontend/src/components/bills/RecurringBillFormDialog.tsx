@@ -31,7 +31,7 @@ export function RecurringBillFormDialog() {
 
   const {
     register, handleSubmit, control, reset, formState: { errors },
-  } = useForm<RecurringBillFormInput>({
+  } = useForm<RecurringBillFormInput, unknown, RecurringBillFormData>({
     resolver: zodResolver(recurringBillSchema),
     defaultValues: defaultValues(),
   });
@@ -58,7 +58,7 @@ export function RecurringBillFormDialog() {
           <DialogDescription>Cria um modelo que se repete todos os meses</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="description">Descrição</Label>
             <Input id="description" placeholder="Ex: Renda, Internet, Luz..." {...register("description")} />

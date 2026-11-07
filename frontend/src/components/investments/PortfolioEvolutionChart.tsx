@@ -84,7 +84,7 @@ export function PortfolioEvolutionChart({ baseCurrency }: { baseCurrency: string
                     label={props.label as string}
                     hideAmounts={hideAmounts}
                     baseCurrency={baseCurrency}
-                    payload={(props.payload ?? []).map((p: any) => ({ value: p.value }))}
+                    payload={(props.payload ?? []).map((p) => ({ value: Number(p.value ?? 0) }))}
                   />
                 )}
               />

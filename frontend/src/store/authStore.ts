@@ -23,12 +23,12 @@ export const useAuthStore = create<AuthState>()(
       setToken: (token: string) =>
         set({ token, isAuthenticated: Boolean(token) }),
       setUser: (user: UserRead) =>
-        set({ user, userName: user.full_name || user.email }),
+        set({ user, userName: user.name || user.email }),
       setAuth: (token: string, user: UserRead) =>
         set({
           token,
           user,
-          userName: user.full_name || user.email,
+          userName: user.name || user.email,
           isAuthenticated: true,
         }),
       logout: () =>

@@ -1,3 +1,6 @@
+import type { CountryCode } from "./country";
+import type { CurrencyCode } from "./investment";
+
 export type InvoiceStatus = "pending" | "paid";
 
 export interface CreditCardRead {
@@ -6,6 +9,8 @@ export interface CreditCardRead {
   closing_day: number;
   due_day: number;
   credit_limit: number | null;
+  country: CountryCode;
+  currency: CurrencyCode;
 }
 
 export interface CreditCardCreate {
@@ -13,6 +18,8 @@ export interface CreditCardCreate {
   closing_day: number;
   due_day: number;
   credit_limit?: number | null;
+  country?: CountryCode;
+  currency?: CurrencyCode;
 }
 
 export interface CardInstallmentRead {

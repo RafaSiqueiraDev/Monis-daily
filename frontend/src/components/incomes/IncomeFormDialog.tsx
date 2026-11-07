@@ -40,7 +40,7 @@ export function IncomeFormDialog({ defaultReferenceMonth }: { defaultReferenceMo
     control,
     reset,
     formState: { errors },
-  } = useForm<IncomeFormInput>({
+  } = useForm<IncomeFormInput, unknown, IncomeFormData>({
     resolver: zodResolver(incomeSchema),
     defaultValues: defaultValues(),
   });
@@ -85,7 +85,7 @@ export function IncomeFormDialog({ defaultReferenceMonth }: { defaultReferenceMo
           <DialogDescription>Regista uma fonte de rendimento</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Categoria</Label>
             <Controller

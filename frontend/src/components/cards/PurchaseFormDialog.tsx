@@ -41,7 +41,7 @@ export function PurchaseFormDialog({ creditCardId }: { creditCardId: string }) {
     control,
     reset,
     formState: { errors },
-  } = useForm<CardPurchaseFormInput>({
+  } = useForm<CardPurchaseFormInput, unknown, CardPurchaseFormData>({
     resolver: zodResolver(cardPurchaseSchema),
     defaultValues: defaultValues(),
   });
@@ -89,7 +89,7 @@ export function PurchaseFormDialog({ creditCardId }: { creditCardId: string }) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="description">Descrição</Label>
             <Input id="description" placeholder="Ex: Portátil, Viagem..." {...register("description")} />

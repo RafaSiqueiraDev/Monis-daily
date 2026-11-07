@@ -48,7 +48,7 @@ export default function DashboardPage() {
           value={summary ? displayCurrency(summary.net_balance, hideAmounts) : "—"}
           icon={Wallet}
           gradient={summary && summary.net_balance < 0 ? "rose" : "brand"}
-          sparkline
+          showSparkline
           isLoading={isSummaryLoading}
         />
         <KpiCard

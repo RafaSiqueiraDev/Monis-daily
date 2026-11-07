@@ -1,10 +1,12 @@
+import type { CurrencyCode } from "./investment";
+
 export type CountryCode = "PT" | "BR";
 
 export interface CountryInfo {
   code: CountryCode;
   flag: string;
   label: string;
-  currency: string;
+  currency: CurrencyCode;
 }
 
 export const COUNTRIES: Record<CountryCode, CountryInfo> = {

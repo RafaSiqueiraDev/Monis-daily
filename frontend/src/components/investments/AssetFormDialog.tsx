@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import {
@@ -26,21 +26,21 @@ export function AssetFormDialog() {
   const createAsset = useCreateInvestmentAsset();
 
   const {
-    register, handleSubmit, control, watch, reset, formState: { errors },
-  } = useForm<InvestmentAssetFormInput>({
+    register, handleSubmit, control, reset, formState: { errors },
+  } = useForm<InvestmentAssetFormInput, unknown, InvestmentAssetFormData>({
     resolver: zodResolver(investmentAssetSchema),
     defaultValues: defaultValues(),
   });
 
-  const category = watch("category");
+  const category = useWatch({ control, name: "category" });
   const isStock = category === "stock";
 
   const onSubmit = (data: InvestmentAssetFormData) => {
     createAsset.mutate(
       {
         name: data.name,
-        category: data.category as any,
-        currency: data.currency as any,
+        category: data.category,
+        currency: data.currency,
         institution: data.institution || null,
         maturity_date: data.maturity_date || null,
         ticker: isStock ? (data.ticker || null) : null,
@@ -67,7 +67,7 @@ export function AssetFormDialog() {
           <DialogDescription>Regista uma posição para acompanhares mês a mês</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Nome</Label>
             <Input id="name" placeholder="Ex: PPR Fidelidade, Tesouro Direto..." {...register("name")} />
