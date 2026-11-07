@@ -41,11 +41,34 @@ export interface InvestmentSnapshotCreate {
   contribution?: number;
 }
 
+/** Espelha backend/app/schemas/investment.py → CurrencyGroupTotal */
+export interface CurrencyGroupTotal {
+  currency: CurrencyCode;
+  total_balance: number;
+  total_contributions: number;
+}
+
+/** Espelha backend/app/schemas/investment.py → AssetPositionRead */
+export interface AssetPosition {
+  asset_id: string;
+  name: string;
+  category: AssetCategory;
+  currency: CurrencyCode;
+  balance_native: number;
+  contribution_native: number;
+  balance_converted: number;
+  portfolio_share_pct: number;
+}
+
+/** Espelha backend/app/schemas/investment.py → PortfolioSummaryRead */
 export interface InvestmentSummary {
   reference_month: string;
-  base_currency: string;
+  base_display_currency: CurrencyCode;
+  totals_by_currency: CurrencyGroupTotal[];
   consolidated_balance: number;
-  totals_by_currency: Record<string, number>;
+  consolidated_contributions: number;
+  exchange_rates: Record<string, number>;
+  positions: AssetPosition[];
 }
 
 export interface InvestmentContributionRead {

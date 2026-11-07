@@ -1,12 +1,25 @@
+/** Garante um código ISO 4217 de 3 letras válido; caso contrário usa EUR. */
+function safeCurrencyCode(currencyCode?: string): string {
+  const isValidCode = typeof currencyCode === "string" && /^[A-Za-z]{3}$/.test(currencyCode);
+  return isValidCode ? currencyCode.toUpperCase() : "EUR";
+}
+
+function currencySymbol(currencyCode?: string): string {
+  const code = safeCurrencyCode(currencyCode);
+  try {
+    const parts = new Intl.NumberFormat("pt-PT", { style: "currency", currency: code }).formatToParts(0);
+    return parts.find((p) => p.type === "currency")?.value ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function formatCurrency(
   value: number | string | null | undefined,
   currencyCode?: string
 ): string {
   const numericValue = typeof value === "number" ? value : Number(value) || 0;
-
-  // Garante que o código é uma string de 3 letras válida (ISO 4217), caso contrário usa EUR
-  const isValidCode = typeof currencyCode === "string" && /^[A-Za-z]{3}$/.test(currencyCode);
-  const safeCurrency = isValidCode ? currencyCode.toUpperCase() : "EUR";
+  const safeCurrency = safeCurrencyCode(currencyCode);
 
   try {
     return new Intl.NumberFormat("pt-PT", {
@@ -23,6 +36,6 @@ export function displayCurrency(
   isMasked: boolean = false,
   currencyCode?: string
 ): string {
-  if (isMasked) return "•••• €";
+  if (isMasked) return `•••• ${currencySymbol(currencyCode)}`;
   return formatCurrency(value, currencyCode);
 }

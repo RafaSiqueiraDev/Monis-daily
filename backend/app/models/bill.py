@@ -1,6 +1,6 @@
 import uuid
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import (
     String, Numeric, Date, DateTime, Boolean, SmallInteger,
@@ -11,6 +11,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.category import Category
 from app.models.enums import BillType, PaymentStatus, CountryCode, CurrencyCode
 
 

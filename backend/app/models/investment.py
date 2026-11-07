@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import String, Numeric, Date, DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy import Enum as SqlEnum
@@ -9,6 +9,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
 from app.models.enums import AssetCategory, CurrencyCode
 
 
