@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { AppLayout } from "./components/layout/AppLayout";
+import { ConnectionBanner } from "./components/layout/ConnectionBanner";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -19,24 +20,28 @@ function CatchAllRedirect() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+    <>
+      {/* Fora das rotas: também cobre login/registo, onde o cold start se nota mais */}
+      <ConnectionBanner />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/dashboard" element={<Navigate to="/" replace />} />
-          <Route path="/resumo-mensal" element={<MonthlyOverviewPage />} />
-          <Route path="/despesas" element={<ExpensesPage />} />
-          <Route path="/receitas" element={<IncomesPage />} />
-          <Route path="/cartoes" element={<CardsPage />} />
-          <Route path="/investimentos" element={<InvestmentsPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/resumo-mensal" element={<MonthlyOverviewPage />} />
+            <Route path="/despesas" element={<ExpensesPage />} />
+            <Route path="/receitas" element={<IncomesPage />} />
+            <Route path="/cartoes" element={<CardsPage />} />
+            <Route path="/investimentos" element={<InvestmentsPage />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route path="*" element={<CatchAllRedirect />} />
-    </Routes>
+        <Route path="*" element={<CatchAllRedirect />} />
+      </Routes>
+    </>
   );
 }
