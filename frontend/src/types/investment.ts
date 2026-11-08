@@ -12,6 +12,53 @@ export interface InvestmentAssetRead {
   shares_quantity: number | null;
   average_price: number | null;
   created_at: string;
+  /** Último preço conhecido (cache no servidor), na moeda do provedor */
+  last_price: number | null;
+  last_price_currency: string | null;
+  last_price_at: string | null;
+  /** Calculados no servidor, na moeda do ativo (null se faltar dados) */
+  market_value: number | null;
+  cost_basis: number | null;
+  unrealized_pnl: number | null;
+  unrealized_pnl_pct: number | null;
+}
+
+export interface InvestmentAssetUpdate {
+  name?: string;
+  ticker?: string | null;
+  shares_quantity?: string | null;
+  average_price?: string | null;
+}
+
+/** Espelha backend QuoteRead */
+export interface QuoteRead {
+  symbol: string;
+  price: number;
+  currency: string;
+  name: string | null;
+  provider: string;
+  fetched_at: string;
+  previous_close: number | null;
+  day_change_pct: number | null;
+}
+
+export interface QuoteSyncItem {
+  asset_id: string;
+  ticker: string;
+  status: "updated" | "failed";
+  price: number | null;
+  currency: string | null;
+  snapshot_updated: boolean;
+  reason: string | null;
+}
+
+/** Espelha backend QuoteSyncResult */
+export interface QuoteSyncResult {
+  synced_at: string;
+  reference_month: string;
+  updated_count: number;
+  failed_count: number;
+  items: QuoteSyncItem[];
 }
 
 export interface InvestmentAssetCreate {

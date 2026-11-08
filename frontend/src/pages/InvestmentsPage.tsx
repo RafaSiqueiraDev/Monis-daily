@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { format, startOfMonth } from "date-fns";
 import { CurrencyBreakdown } from "../components/investments/CurrencyBreakdown";
+import { MarketPositionsCard } from "../components/investments/MarketPositionsCard";
 import { CurrencySelector } from "../components/investments/CurrencySelector";
 import { RegionFilterTabs } from "../components/investments/RegionFilterTabs";
 import { PortfolioEvolutionChart } from "../components/investments/PortfolioEvolutionChart";
@@ -27,7 +28,7 @@ export default function InvestmentsPage() {
   const setInvestmentBaseCurrency = useUiPreferencesStore((state) => state.setInvestmentBaseCurrency);
 
   const { data: summary, isLoading: isSummaryLoading } = useInvestmentSummary(referenceMonth, investmentBaseCurrency);
-  const { data: assets } = useInvestmentAssets();
+  const { data: assets, isLoading: isAssetsLoading } = useInvestmentAssets();
   const { data: snapshots, isLoading: isSnapshotsLoading } = useInvestmentSnapshotsForMonth(assets ?? [], referenceMonth);
 
   const availableCurrencies = useMemo(() => {
@@ -67,6 +68,8 @@ export default function InvestmentsPage() {
       </div>
 
       <CurrencyBreakdown summary={summary ?? null} baseCurrency={investmentBaseCurrency} isLoading={isSummaryLoading} />
+
+      <MarketPositionsCard assets={assets ?? []} isLoading={isAssetsLoading} />
 
       <PortfolioEvolutionChart baseCurrency={investmentBaseCurrency} />
 

@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     REGISTRATION_INVITE_CODE: str = "change-me"
     FRONTEND_URL: str = "https://monis-daily-ashen.vercel.app"
 
+    # Cotações de mercado (Fase A). O Yahoo não precisa de chave; os outros
+    # provedores só entram na cadeia de fallback se a chave estiver definida
+    # (o brapi funciona sem token apenas para alguns tickers da B3).
+    BRAPI_TOKEN: str | None = None
+    TWELVE_DATA_API_KEY: str | None = None
+    QUOTES_CACHE_TTL_SECONDS: int = 15 * 60
+
+    # Token para endpoints /internal/* chamados pelo cron-job.org (header
+    # X-Internal-Token). Sem valor, esses endpoints ficam desligados (503).
+    INTERNAL_CRON_SECRET: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -35,6 +35,13 @@ class InvestmentAsset(Base):
         Numeric(18, 6), nullable=True)
     average_price: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(14, 4), nullable=True)
+    # Cache L2 de cotações: último preço conhecido, na moeda do provedor
+    last_price: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(18, 6), nullable=True)
+    last_price_currency: Mapped[Optional[str]] = mapped_column(
+        String(3), nullable=True)
+    last_price_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
 

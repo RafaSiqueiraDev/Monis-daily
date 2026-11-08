@@ -15,6 +15,7 @@ from app.routers import (
     credit_cards,
     dashboard,
     investments,
+    internal,
 )
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -52,6 +53,7 @@ app.include_router(bill_instances.router)
 app.include_router(credit_cards.router)
 app.include_router(dashboard.router)
 app.include_router(investments.router)
+app.include_router(internal.router)
 
 
 @app.get("/health")

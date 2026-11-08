@@ -1,8 +1,10 @@
 import logging
 import time
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
+from typing import Optional
+
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,11 +13,16 @@ from sqlalchemy.orm import selectinload
 from app.models.investment import InvestmentAsset, InvestmentSnapshot
 from app.models.enums import CurrencyCode
 from app.schemas.investment import (
+    InvestmentAssetRead,
     InvestmentSnapshotCreate,
     PortfolioSummaryRead,
     AssetPositionRead,
     CurrencyGroupTotal,
+    QuoteSyncItem,
+    QuoteSyncResult,
+    QuoteSyncAllResult,
 )
+from app.services.market_data_service import get_quotes, normalize_ticker
 
 
 logger = logging.getLogger(__name__)
@@ -210,4 +217,184 @@ async def calculate_portfolio_summary(
         consolidated_contributions=total_consolidated_contrib,
         exchange_rates=rates,
         positions=positions,
+    )
+
+
+# --- COTAÇÕES DE MERCADO ----------------------------------------------------
+
+
+async def convert_price(price: Decimal, from_currency: str, to_currency: str) -> Optional[Decimal]:
+    """
+    Converte um preço entre moedas com as taxas em cache. None se alguma das
+    moedas não for suportada (ex: ativo em EUR cotado em SEK).
+    """
+    if from_currency == to_currency:
+        return price
+    try:
+        base = CurrencyCode(to_currency)
+    except ValueError:
+        return None
+    rates = await get_exchange_rates(base)
+    rate = rates.get(from_currency)
+    if not rate:
+        return None
+    return price / rate  # rates[X] = unidades de X por 1 unidade da base
+
+
+async def build_asset_reads(assets: list[InvestmentAsset]) -> list[InvestmentAssetRead]:
+    """
+    Serializa ativos com os campos de mercado calculados. A mesma moeda é
+    resolvida no próprio schema; aqui só tratamos cotações noutra moeda.
+    """
+    reads: list[InvestmentAssetRead] = []
+    for asset in assets:
+        read = InvestmentAssetRead.model_validate(asset)
+        if (read.market_value is None and read.last_price is not None
+                and read.last_price_currency and read.last_price_currency != read.currency.value):
+            converted = await convert_price(read.last_price, read.last_price_currency, read.currency.value)
+            if converted is not None:
+                read.apply_price(converted)
+        reads.append(read)
+    return reads
+
+
+async def sync_user_quotes(db: AsyncSession, user_id: uuid.UUID) -> QuoteSyncResult:
+    """
+    Atualiza o último preço (cache L2) de todos os ativos com ticker e, para
+    os que também têm quantidade, grava o snapshot do mês corrente com
+    balance = shares_quantity * preço (na moeda do ativo). A contribuição já
+    registada nesse snapshot é preservada.
+
+    Se um provedor falhar, o ativo mantém o last_price anterior: o resumo e
+    a lista continuam a mostrar o último valor conhecido, com a data.
+    """
+    month = date.today().replace(day=1)
+    now = datetime.now(timezone.utc)
+
+    result = await db.execute(
+        select(InvestmentAsset).where(
+            InvestmentAsset.user_id == user_id,
+            InvestmentAsset.ticker.is_not(None),
+            InvestmentAsset.ticker != "",
+        )
+    )
+    assets = list(result.scalars().all())
+
+    items: list[QuoteSyncItem] = []
+    symbol_by_asset: dict[uuid.UUID, str] = {}
+    for asset in assets:
+        try:
+            symbol_by_asset[asset.id] = normalize_ticker(asset.ticker)
+        except ValueError as exc:
+            items.append(QuoteSyncItem(asset_id=asset.id, ticker=asset.ticker,
+                                       status="failed", reason=str(exc)))
+
+    quotes, errors = await get_quotes(list(symbol_by_asset.values())) if symbol_by_asset else ({}, {})
+
+    # Snapshots já existentes deste mês, numa só query
+    existing: dict[uuid.UUID, InvestmentSnapshot] = {}
+    if symbol_by_asset:
+        snap_result = await db.execute(
+            select(InvestmentSnapshot).where(
+                InvestmentSnapshot.asset_id.in_(list(symbol_by_asset)),
+                InvestmentSnapshot.reference_month == month,
+            )
+        )
+        existing = {snap.asset_id: snap for snap in snap_result.scalars()}
+
+    for asset in assets:
+        symbol = symbol_by_asset.get(asset.id)
+        if symbol is None:
+            continue  # ticker inválido, já reportado
+        quote = quotes.get(symbol)
+        if quote is None:
+            reason = errors.get(symbol, "Sem cotação")
+            if asset.last_price_at:
+                reason += f" (a usar último preço de {asset.last_price_at:%d/%m/%Y %H:%M})"
+            items.append(QuoteSyncItem(asset_id=asset.id, ticker=symbol, status="failed", reason=reason))
+            continue
+
+        asset.last_price = quote.price
+        asset.last_price_currency = quote.currency
+        asset.last_price_at = now
+
+        snapshot_updated = False
+        reason = None
+        if asset.shares_quantity:
+            price = await convert_price(quote.price, quote.currency, asset.currency.value)
+            if price is None:
+                reason = f"Cotação em {quote.currency}: sem conversão para {asset.currency.value}"
+            else:
+                balance = (asset.shares_quantity * price).quantize(Decimal("0.01"))
+                snapshot = existing.get(asset.id)
+                if snapshot is None:
+                    db.add(InvestmentSnapshot(asset_id=asset.id, reference_month=month,
+                                              balance=balance, contribution=Decimal("0.00")))
+                else:
+                    snapshot.balance = balance
+                snapshot_updated = True
+
+        items.append(QuoteSyncItem(
+            asset_id=asset.id, ticker=symbol, status="updated", price=quote.price,
+            currency=quote.currency, snapshot_updated=snapshot_updated, reason=reason,
+        ))
+
+    await db.commit()
+
+    updated = sum(1 for i in items if i.status == "updated")
+    return QuoteSyncResult(
+        synced_at=now,
+        reference_month=month,
+        updated_count=updated,
+        failed_count=len(items) - updated,
+        items=items,
+    )
+
+
+async def sync_all_users_quotes(db: AsyncSession) -> QuoteSyncAllResult:
+    """
+    Sync de cotações para TODOS os utilizadores com ativos cotados (cron).
+
+    1. Pede de uma vez as cotações de todos os tickers distintos, para
+       aquecer a cache L1: o mesmo ticker em 10 carteiras = 1 pedido externo.
+    2. Corre o sync de cada utilizador, que já só lê da cache. Um utilizador
+       com erro não impede os restantes (rollback e segue).
+    """
+    started = time.monotonic()
+
+    rows = (await db.execute(
+        select(InvestmentAsset.user_id, InvestmentAsset.ticker).where(
+            InvestmentAsset.ticker.is_not(None), InvestmentAsset.ticker != "")
+    )).all()
+    user_ids = list(dict.fromkeys(row.user_id for row in rows))
+
+    symbols: list[str] = []
+    for row in rows:
+        try:
+            symbols.append(normalize_ticker(row.ticker))
+        except ValueError:
+            pass  # reportado no sync do próprio utilizador
+    if symbols:
+        await get_quotes(symbols)
+
+    updated = failed = users_failed = 0
+    for user_id in user_ids:
+        try:
+            result = await sync_user_quotes(db, user_id)
+        except Exception:
+            logger.exception("Sync de cotações falhou para o utilizador %s", user_id)
+            await db.rollback()
+            users_failed += 1
+            continue
+        updated += result.updated_count
+        failed += result.failed_count
+
+    return QuoteSyncAllResult(
+        synced_at=datetime.now(timezone.utc),
+        users_processed=len(user_ids) - users_failed,
+        users_failed=users_failed,
+        distinct_tickers=len(set(symbols)),
+        assets_updated=updated,
+        assets_failed=failed,
+        duration_seconds=round(time.monotonic() - started, 2),
     )
