@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     TWELVE_DATA_API_KEY: str | None = None
     QUOTES_CACHE_TTL_SECONDS: int = 15 * 60
 
+    # Token para endpoints /internal/* chamados pelo cron-job.org (header
+    # X-Internal-Token). Sem valor, esses endpoints ficam desligados (503).
+    INTERNAL_CRON_SECRET: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

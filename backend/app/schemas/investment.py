@@ -193,3 +193,14 @@ class QuoteSyncResult(BaseModel):
     updated_count: int
     failed_count: int
     items: list[QuoteSyncItem]
+
+
+class QuoteSyncAllResult(BaseModel):
+    """Resumo agregado do sync do cron (sem dados por utilizador)."""
+    synced_at: datetime
+    users_processed: int
+    users_failed: int
+    distinct_tickers: int
+    assets_updated: int
+    assets_failed: int
+    duration_seconds: float

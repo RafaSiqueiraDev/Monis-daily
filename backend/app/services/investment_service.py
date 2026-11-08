@@ -20,6 +20,7 @@ from app.schemas.investment import (
     CurrencyGroupTotal,
     QuoteSyncItem,
     QuoteSyncResult,
+    QuoteSyncAllResult,
 )
 from app.services.market_data_service import get_quotes, normalize_ticker
 
@@ -347,4 +348,53 @@ async def sync_user_quotes(db: AsyncSession, user_id: uuid.UUID) -> QuoteSyncRes
         updated_count=updated,
         failed_count=len(items) - updated,
         items=items,
+    )
+
+
+async def sync_all_users_quotes(db: AsyncSession) -> QuoteSyncAllResult:
+    """
+    Sync de cotações para TODOS os utilizadores com ativos cotados (cron).
+
+    1. Pede de uma vez as cotações de todos os tickers distintos, para
+       aquecer a cache L1: o mesmo ticker em 10 carteiras = 1 pedido externo.
+    2. Corre o sync de cada utilizador, que já só lê da cache. Um utilizador
+       com erro não impede os restantes (rollback e segue).
+    """
+    started = time.monotonic()
+
+    rows = (await db.execute(
+        select(InvestmentAsset.user_id, InvestmentAsset.ticker).where(
+            InvestmentAsset.ticker.is_not(None), InvestmentAsset.ticker != "")
+    )).all()
+    user_ids = list(dict.fromkeys(row.user_id for row in rows))
+
+    symbols: list[str] = []
+    for row in rows:
+        try:
+            symbols.append(normalize_ticker(row.ticker))
+        except ValueError:
+            pass  # reportado no sync do próprio utilizador
+    if symbols:
+        await get_quotes(symbols)
+
+    updated = failed = users_failed = 0
+    for user_id in user_ids:
+        try:
+            result = await sync_user_quotes(db, user_id)
+        except Exception:
+            logger.exception("Sync de cotações falhou para o utilizador %s", user_id)
+            await db.rollback()
+            users_failed += 1
+            continue
+        updated += result.updated_count
+        failed += result.failed_count
+
+    return QuoteSyncAllResult(
+        synced_at=datetime.now(timezone.utc),
+        users_processed=len(user_ids) - users_failed,
+        users_failed=users_failed,
+        distinct_tickers=len(set(symbols)),
+        assets_updated=updated,
+        assets_failed=failed,
+        duration_seconds=round(time.monotonic() - started, 2),
     )
