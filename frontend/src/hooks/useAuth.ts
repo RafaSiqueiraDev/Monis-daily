@@ -5,6 +5,7 @@ import { useAuthStore } from "../store/authStore";
 import { useUiPreferencesStore } from "../store/uiPreferencesStore";
 import type { LoginFormData, RegisterFormData } from "../lib/validations/auth";
 import type { CountryCode } from "../types/country";
+import { isConnectivityError } from "../api/connectivity";
 
 export function useLogin() {
   const navigate = useNavigate();
@@ -12,6 +13,9 @@ export function useLogin() {
   const syncFromServer = useUiPreferencesStore((state) => state.syncFromServer);
 
   return useMutation({
+    // O login não altera dados: é seguro repetir se o servidor estiver a acordar
+    retry: (failureCount, error) => isConnectivityError(error) && failureCount < 2,
+    retryDelay: (attempt) => Math.min(2_000 * 2 ** attempt, 8_000),
     mutationFn: async (credentials: LoginFormData) => {
       const tokenResponse = await login(credentials.email, credentials.password);
       useAuthStore.setState({ token: tokenResponse.access_token });
