@@ -14,7 +14,9 @@ import {
   investmentAssetSchema, type InvestmentAssetFormInput, type InvestmentAssetFormData,
 } from "../../lib/validations/investmentAsset";
 import { useCreateInvestmentAsset } from "../../hooks/useInvestmentAssets";
+import { useSyncQuotes } from "../../hooks/useQuotes";
 import { ASSET_CATEGORY_LABELS, SUPPORTED_CURRENCIES, REGION_BY_CURRENCY } from "../../types/investment";
+import { TickerLookupHint } from "./TickerLookupHint";
 
 const defaultValues = (): InvestmentAssetFormInput => ({
   name: "", category: "stock", currency: "EUR",
@@ -23,7 +25,9 @@ const defaultValues = (): InvestmentAssetFormInput => ({
 
 export function AssetFormDialog() {
   const [open, setOpen] = useState(false);
+  const [lookupTicker, setLookupTicker] = useState("");
   const createAsset = useCreateInvestmentAsset();
+  const syncQuotes = useSyncQuotes();
 
   const {
     register, handleSubmit, control, reset, formState: { errors },
@@ -33,7 +37,8 @@ export function AssetFormDialog() {
   });
 
   const category = useWatch({ control, name: "category" });
-  const isStock = category === "stock";
+  // Ações e fundos/ETFs cotados em bolsa podem ter ticker
+  const isStock = category === "stock" || category === "fund";
 
   const onSubmit = (data: InvestmentAssetFormData) => {
     createAsset.mutate(
@@ -48,12 +53,18 @@ export function AssetFormDialog() {
         average_price: isStock ? (data.average_price || null) : null,
         initial_balance: data.initial_balance || null,
       },
-      { onSuccess: () => { reset(defaultValues()); setOpen(false); } }
+      {
+        onSuccess: (created) => {
+          reset(defaultValues());
+          setOpen(false);
+          if (created.ticker) syncQuotes.mutate(); // valor de mercado visível de imediato
+        },
+      }
     );
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (next) reset(defaultValues()); }}>
+    <Dialog open={open} onOpenChange={(next) => { setOpen(next); if (next) { reset(defaultValues()); setLookupTicker(""); } }}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Plus className="h-4 w-4" />
@@ -123,14 +134,20 @@ export function AssetFormDialog() {
 
           {isStock && (
             <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs font-medium text-slate-500">Dados de ações (opcional)</p>
+              <p className="text-xs font-medium text-slate-500">Cotação de mercado (opcional)</p>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="ticker">Ticker</Label>
-                <Input id="ticker" placeholder="Ex: AAPL, MSFT" {...register("ticker")} />
+                <Input
+                  id="ticker"
+                  placeholder="Ex: VWCE.DE, AAPL, PETR4.SA"
+                  autoComplete="off"
+                  {...register("ticker", { onBlur: (e) => setLookupTicker(e.target.value) })}
+                />
+                <TickerLookupHint ticker={lookupTicker} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="shares_quantity">Nº de ações</Label>
+                  <Label htmlFor="shares_quantity">Quantidade</Label>
                   <Input id="shares_quantity" type="number" step="0.000001" {...register("shares_quantity")} />
                 </div>
                 <div className="flex flex-col gap-1.5">

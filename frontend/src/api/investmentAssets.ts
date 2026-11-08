@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { InvestmentAssetRead, InvestmentAssetCreate } from "../types/investment";
+import type { InvestmentAssetRead, InvestmentAssetCreate, InvestmentAssetUpdate } from "../types/investment";
 
 export async function listInvestmentAssets(): Promise<InvestmentAssetRead[]> {
   const { data } = await apiClient.get<InvestmentAssetRead[]>("/investments/assets");
@@ -15,5 +15,12 @@ export async function bulkCreateInvestmentAssets(
   items: InvestmentAssetCreate[]
 ): Promise<InvestmentAssetRead[]> {
   const { data } = await apiClient.post<InvestmentAssetRead[]>("/investments/assets/bulk", { items });
+  return data;
+}
+export async function updateInvestmentAsset(
+  id: string,
+  payload: InvestmentAssetUpdate
+): Promise<InvestmentAssetRead> {
+  const { data } = await apiClient.patch<InvestmentAssetRead>(`/investments/assets/${id}`, payload);
   return data;
 }

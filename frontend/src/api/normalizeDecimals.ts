@@ -37,6 +37,15 @@ const DECIMAL_KEYS = new Set<string>([
   "contribution_native",
   "balance_converted",
   "portfolio_share_pct",
+  // cotações (Fase A)
+  "last_price",
+  "market_value",
+  "cost_basis",
+  "unrealized_pnl",
+  "unrealized_pnl_pct",
+  "price",
+  "previous_close",
+  "day_change_pct",
 ]);
 
 /** Chaves cujo valor é um dicionário { código: Decimal } */
