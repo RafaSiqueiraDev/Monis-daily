@@ -47,7 +47,7 @@ export function ContributionFormDialog({ assets }: { assets: InvestmentAssetRead
     control,
     reset,
     formState: { errors },
-  } = useForm<ContributionFormInput>({
+  } = useForm<ContributionFormInput, unknown, ContributionFormData>({
     resolver: zodResolver(contributionSchema),
     defaultValues: defaultValues(),
   });
@@ -79,7 +79,7 @@ export function ContributionFormDialog({ assets }: { assets: InvestmentAssetRead
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Ativo</Label>
             <Select value={assetId} onValueChange={setAssetId}>

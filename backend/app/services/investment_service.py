@@ -1,3 +1,5 @@
+import logging
+import time
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -16,36 +18,66 @@ from app.schemas.investment import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+# Taxas de último recurso com base EUR (quantas unidades de X valem 1 EUR).
+# Só são usadas se a API falhar E não houver nada em cache. Qualquer base
+# é derivada daqui por taxa cruzada, por isso ficam sempre coerentes.
+_FALLBACK_RATES_EUR: dict[str, Decimal] = {
+    "EUR": Decimal("1.00"),
+    "USD": Decimal("1.08"),
+    "BRL": Decimal("6.10"),
+    "GBP": Decimal("0.85"),
+    "CHF": Decimal("0.94"),
+}
+
+_RATES_TTL_SECONDS = 60 * 60  # 1h — câmbio de referência diário chega e sobra
+_RATES_API_URL = "https://open.er-api.com/v6/latest/{base}"
+
+# Cache em memória por moeda base: {base: (timestamp, rates)}.
+# O Render corre uma única instância, por isso um dict de processo basta.
+_rates_cache: dict[str, tuple[float, dict[str, Decimal]]] = {}
+
+
+def _fallback_rates(base_currency: CurrencyCode) -> dict[str, Decimal]:
+    base_in_eur = _FALLBACK_RATES_EUR[base_currency.value]
+    return {
+        code: (rate / base_in_eur).quantize(Decimal("0.000001"))
+        for code, rate in _FALLBACK_RATES_EUR.items()
+    }
+
+
 async def get_exchange_rates(base_currency: CurrencyCode) -> dict[str, Decimal]:
     """
-    Obtém cotações relativas à moeda base escolhida.
-    Fallback estático garantido se a rede falhar.
+    Devolve {moeda: unidades dessa moeda por 1 unidade da base}, para todas
+    as moedas de CurrencyCode. Converter: valor_na_base = valor_nativo / taxa.
+
+    Ordem: cache fresca → API → cache expirada → fallback estático.
     """
-    # Exemplo: se base é EUR
-    rates = {
-        "EUR": Decimal("1.00"),
-        "USD": Decimal("1.08"),
-        "BRL": Decimal("6.10"),
-    }
+    key = base_currency.value
+    cached = _rates_cache.get(key)
+    if cached and time.monotonic() - cached[0] < _RATES_TTL_SECONDS:
+        return cached[1]
 
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"https://open.er-api.com/v6/latest/{base_currency.value}")
-            if resp.status_code == 200:
-                api_rates = resp.json().get("rates", {})
-                for c in ["EUR", "USD", "BRL"]:
-                    if c in api_rates:
-                        rates[c] = Decimal(str(api_rates[c]))
-    except Exception:
-        # Se base_currency for BRL ou USD e o fallback precisar de inversão simples
-        if base_currency == CurrencyCode.BRL:
-            rates = {"BRL": Decimal("1.00"), "EUR": Decimal(
-                "0.16"), "USD": Decimal("0.18")}
-        elif base_currency == CurrencyCode.USD:
-            rates = {"USD": Decimal("1.00"), "EUR": Decimal(
-                "0.92"), "BRL": Decimal("5.65")}
+            resp = await client.get(_RATES_API_URL.format(base=key))
+            resp.raise_for_status()
+            api_rates = resp.json().get("rates", {})
 
-    return rates
+        rates: dict[str, Decimal] = {}
+        for currency in CurrencyCode:
+            if currency.value not in api_rates:
+                raise ValueError(f"Taxa em falta para {currency.value}")
+            rates[currency.value] = Decimal(str(api_rates[currency.value]))
+
+        _rates_cache[key] = (time.monotonic(), rates)
+        return rates
+    except Exception as exc:  # rede, HTTP != 2xx, JSON inválido, moeda em falta
+        logger.warning("Falha ao obter câmbio (base=%s): %s", key, exc)
+        if cached:
+            return cached[1]  # melhor uma taxa de há umas horas do que a estática
+        return _fallback_rates(base_currency)
 
 
 async def save_or_update_snapshot(

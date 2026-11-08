@@ -11,11 +11,5 @@ export const expenseSchema = z.object({
     .transform((val) => (val === "" ? undefined : val)),
 });
 
-export type ExpenseFormInput = {
-  description: string;
-  amount: string;
-  expense_date: string;
-  category_id?: string;
-};
-
-export type ExpenseFormData = z.infer<typeof expenseSchema>;
+export type ExpenseFormInput = z.input<typeof expenseSchema>;
+export type ExpenseFormData = z.output<typeof expenseSchema>;

@@ -20,7 +20,7 @@ export function BillsSection({ referenceMonth, currency }: { referenceMonth: str
   const { data: templates, isLoading: isTemplatesLoading } = useRecurringBills();
   const generateMonth = useGenerateMonthInstances();
 
-  const allInstances = instances ?? [];
+  const allInstances = useMemo(() => instances ?? [], [instances]);
 
   const filteredInstances = useMemo(() => {
     if (statusFilter === ALL_STATUS) return allInstances;

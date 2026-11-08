@@ -9,12 +9,5 @@ export const incomeSchema = z.object({
   received: z.boolean().default(false),
 });
 
-export type IncomeFormInput = {
-  category: string;
-  detail: string;
-  amount: string;
-  reference_month: string;
-  received: boolean;
-};
-
-export type IncomeFormData = z.infer<typeof incomeSchema>;
+export type IncomeFormInput = z.input<typeof incomeSchema>;
+export type IncomeFormData = z.output<typeof incomeSchema>;

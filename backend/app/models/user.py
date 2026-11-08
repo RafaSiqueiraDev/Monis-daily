@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 from datetime import datetime
 
 from sqlalchemy import String, DateTime, Boolean, func
@@ -6,6 +7,12 @@ from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.category import Category
+    from app.models.bill import Income, RecurringBill, DailyExpense
+    from app.models.credit_card import CreditCard
+    from app.models.investment import InvestmentAsset
 
 
 class User(Base):

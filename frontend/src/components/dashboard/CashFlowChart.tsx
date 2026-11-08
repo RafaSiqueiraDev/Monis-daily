@@ -88,11 +88,11 @@ export function CashFlowChart() {
                     active={props.active}
                     label={props.label as string}
                     hideAmounts={hideAmounts}
-                    payload={(props.payload ?? []).map((p: any) => ({
-                      dataKey: p.dataKey,
-                      value: p.value,
-                      color: p.color,
-                      name: p.name,
+                    payload={(props.payload ?? []).map((p) => ({
+                      dataKey: String(p.dataKey ?? ""),
+                      value: Number(p.value ?? 0),
+                      color: p.color ?? "",
+                      name: String(p.name ?? ""),
                     }))}
                   />
                 )}

@@ -36,12 +36,16 @@ export function CurrencyBreakdown({
     );
   }
 
-  const currencies = Object.entries(summary.totals_by_currency ?? {}).filter(
-    (entry): entry is [CurrencyCode, number] =>
-      SUPPORTED_CURRENCIES.includes(entry[0] as CurrencyCode) &&
-      typeof entry[1] === "number" &&
-      !Number.isNaN(entry[1])
-  );
+  // O backend devolve uma lista [{ currency, total_balance, total_contributions }].
+  // Mostramos só regiões com saldo neste mês.
+  const currencies = (summary.totals_by_currency ?? [])
+    .filter(
+      (group) =>
+        SUPPORTED_CURRENCIES.includes(group.currency) &&
+        Number.isFinite(group.total_balance) &&
+        group.total_balance > 0
+    )
+    .map((group) => [group.currency, group.total_balance] as [CurrencyCode, number]);
 
   return (
     <Card className="bg-gradient-to-br from-emerald-50 via-teal-50/50 to-sky-50 border-teal-100/60">

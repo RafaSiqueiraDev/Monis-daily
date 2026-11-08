@@ -42,7 +42,7 @@ export function IncomeEditDialog({ income }: { income: IncomeRead }) {
     control,
     reset,
     formState: { errors },
-  } = useForm<IncomeEditFormInput>({
+  } = useForm<IncomeEditFormInput, unknown, IncomeEditFormData>({
     resolver: zodResolver(incomeEditSchema),
     defaultValues: defaultValues(),
   });
@@ -85,7 +85,7 @@ export function IncomeEditDialog({ income }: { income: IncomeRead }) {
           <DialogDescription>Atualiza os dados desta receita</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="edit-income-description">Descrição</Label>
             <Input id="edit-income-description" {...register("description")} />

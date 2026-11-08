@@ -34,7 +34,9 @@ if cors_env:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"^https://.*\.vercel\.app$",
+    # Só previews deste projeto na Vercel (ex: monis-daily-git-<branch>-<team>.vercel.app),
+    # e não qualquer app alojada em *.vercel.app.
+    allow_origin_regex=r"^https://monis-daily-[a-z0-9-]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

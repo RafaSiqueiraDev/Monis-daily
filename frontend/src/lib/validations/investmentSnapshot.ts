@@ -7,10 +7,5 @@ export const investmentSnapshotSchema = z.object({
   contribution: optionalNonNegativeAmountField,
 });
 
-export type InvestmentSnapshotFormInput = {
-  asset_id: string;
-  balance: string;
-  contribution: string;
-};
-
-export type InvestmentSnapshotFormData = z.infer<typeof investmentSnapshotSchema>;
+export type InvestmentSnapshotFormInput = z.input<typeof investmentSnapshotSchema>;
+export type InvestmentSnapshotFormData = z.output<typeof investmentSnapshotSchema>;

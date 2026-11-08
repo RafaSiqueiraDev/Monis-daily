@@ -1,6 +1,7 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Card } from "../ui/card";
+import { Skeleton } from "../ui/skeleton";
 import { cn } from "../../lib/utils";
 
 type GradientVariant = "brand" | "emerald" | "rose" | "sky" | "slate";
@@ -15,6 +16,7 @@ interface KpiCardProps {
   gradient?: GradientVariant;
   action?: ReactNode;
   showSparkline?: boolean;
+  isLoading?: boolean;
 }
 
 const cardBorders: Record<GradientVariant, string> = {
@@ -43,6 +45,7 @@ export function KpiCard({
   gradient = "slate",
   action,
   showSparkline,
+  isLoading = false,
 }: KpiCardProps) {
   const displayTitle = title ?? label ?? "";
   const cardBorderClass = cardBorders[gradient] ?? cardBorders.slate;
@@ -62,7 +65,11 @@ export function KpiCard({
 
           <div>
             <p className="text-xs font-medium text-slate-500">{displayTitle}</p>
-            <p className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{value}</p>
+            {isLoading ? (
+              <Skeleton className="mt-1 h-7 w-28" />
+            ) : (
+              <p className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{value}</p>
+            )}
             {(subtitle || trend) && (
               <p className="mt-0.5 text-xs text-slate-400">{subtitle ?? trend}</p>
             )}

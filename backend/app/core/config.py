@@ -1,4 +1,10 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_DEFAULTS = {
+    "SECRET_KEY": "change-me-in-production",
+    "REGISTRATION_INVITE_CODE": "change-me",
+}
 
 
 class Settings(BaseSettings):
@@ -22,6 +28,26 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
     )
+
+    @model_validator(mode="after")
+    def _reject_insecure_defaults_in_production(self) -> "Settings":
+        """
+        Em produção, recusa arrancar com segredos por defeito: é preferível um
+        deploy falhado e visível no Render do que JWT assinados com uma chave
+        pública ou um convite de registo adivinhável.
+        """
+        if self.ENVIRONMENT != "production":
+            return self
+        insecure = [
+            name for name, default in _INSECURE_DEFAULTS.items()
+            if getattr(self, name) == default
+        ]
+        if insecure:
+            raise ValueError(
+                "Variáveis de ambiente obrigatórias em produção com valor por "
+                f"defeito: {', '.join(insecure)}. Define-as no Render."
+            )
+        return self
 
 
 settings = Settings()

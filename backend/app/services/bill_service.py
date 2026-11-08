@@ -1,10 +1,8 @@
 import uuid
 from datetime import date
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.bill import RecurringBill, BillInstance
-from sqlalchemy import select, or_
 
 
 async def generate_month_instances(

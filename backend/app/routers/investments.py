@@ -146,7 +146,7 @@ async def record_contribution(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    asset = await _get_owned_asset(payload.asset_id, current_user, db)
+    await _get_owned_asset(payload.asset_id, current_user, db)
     contribution = InvestmentContribution(**payload.model_dump())
     db.add(contribution)
     await db.commit()

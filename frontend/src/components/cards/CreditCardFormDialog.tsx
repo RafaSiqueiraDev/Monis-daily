@@ -39,7 +39,7 @@ export function CreditCardFormDialog() {
     control,
     reset,
     formState: { errors },
-  } = useForm<CreditCardFormInput>({
+  } = useForm<CreditCardFormInput, unknown, CreditCardFormData>({
     resolver: zodResolver(creditCardSchema),
     defaultValues: defaultValues(),
   });
@@ -50,7 +50,7 @@ export function CreditCardFormDialog() {
         ...data,
         credit_limit: data.credit_limit ?? null,
         country: selectedCountry,
-        currency: countryInfo.currency as any,
+        currency: countryInfo.currency,
       },
       {
         onSuccess: () => {
@@ -78,7 +78,7 @@ export function CreditCardFormDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Nome do cartão</Label>
             <Input id="name" placeholder="Ex: Visa Gold" {...register("name")} />

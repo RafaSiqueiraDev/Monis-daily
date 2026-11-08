@@ -43,7 +43,7 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
     control,
     reset,
     formState: { errors },
-  } = useForm<ExpenseFormInput>({
+  } = useForm<ExpenseFormInput, unknown, ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: defaultFormValues(),
   });
@@ -56,7 +56,7 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
         expense_date: data.expense_date,
         category_id: data.category_id ?? null,
         country: selectedCountry,
-        currency: countryInfo.currency as any,
+        currency: countryInfo.currency,
       },
       {
         onSuccess: () => {
@@ -89,7 +89,7 @@ export function ExpenseFormDialog({ trigger }: { trigger?: React.ReactNode } = {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as any)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="description">Descrição</Label>
             <Input id="description" placeholder="Ex: Café, Supermercado..." {...register("description")} />
