@@ -24,6 +24,7 @@ from app.schemas.investment import (
 )
 from app.schemas.investment_contribution import (
     InvestmentContributionCreate,
+    InvestmentContributionCreateForAsset,
     InvestmentContributionRead,
 )
 from app.services.investment_service import (
@@ -31,6 +32,7 @@ from app.services.investment_service import (
     calculate_portfolio_summary,
     build_asset_reads,
     sync_user_quotes,
+    apply_contribution_to_snapshot,
 )
 from app.services.market_data_service import get_quote
 
@@ -152,18 +154,43 @@ async def delete_asset(
 # --- APORTES (INVESTMENT CONTRIBUTIONS) ---
 
 
-@router.post("/contributions", response_model=InvestmentContributionRead, status_code=status.HTTP_201_CREATED)
-async def record_contribution(
+async def _record_contribution(
+    asset_id: uuid.UUID, payload: InvestmentContributionCreate, current_user: User, db: AsyncSession
+) -> InvestmentContribution:
+    await _get_owned_asset(asset_id, current_user, db)
+    contribution = InvestmentContribution(
+        asset_id=asset_id,
+        amount=payload.amount,
+        contribution_date=payload.contribution_date,
+        note=payload.note,
+    )
+    db.add(contribution)
+    await apply_contribution_to_snapshot(db, asset_id, payload.contribution_date, payload.amount)
+    await db.commit()
+    await db.refresh(contribution)
+    return contribution
+
+
+@router.post("/assets/{asset_id}/contributions", response_model=InvestmentContributionRead,
+             status_code=status.HTTP_201_CREATED)
+async def record_asset_contribution(
+    asset_id: uuid.UUID,
     payload: InvestmentContributionCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_owned_asset(payload.asset_id, current_user, db)
-    contribution = InvestmentContribution(**payload.model_dump())
-    db.add(contribution)
-    await db.commit()
-    await db.refresh(contribution)
-    return contribution
+    """Regista um aporte e soma-o ao saldo do ativo no mês do aporte (rota usada pelo frontend)."""
+    return await _record_contribution(asset_id, payload, current_user, db)
+
+
+@router.post("/contributions", response_model=InvestmentContributionRead, status_code=status.HTTP_201_CREATED)
+async def record_contribution(
+    payload: InvestmentContributionCreateForAsset,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Variante com asset_id no corpo (mantida por compatibilidade)."""
+    return await _record_contribution(payload.asset_id, payload, current_user, db)
 
 
 @router.get("/assets/{asset_id}/contributions", response_model=list[InvestmentContributionRead])
@@ -229,6 +256,8 @@ async def delete_contribution(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Aporte nao encontrado"
         )
+    await apply_contribution_to_snapshot(
+        db, contribution.asset_id, contribution.contribution_date, -Decimal(contribution.amount))
     await db.delete(contribution)
     await db.commit()
 
