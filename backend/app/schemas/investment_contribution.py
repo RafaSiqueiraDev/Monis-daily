@@ -21,3 +21,8 @@ class InvestmentContributionRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class InvestmentContributionCreateForAsset(InvestmentContributionCreate):
+    """Variante com asset_id no corpo, para POST /investments/contributions."""
+    asset_id: uuid.UUID

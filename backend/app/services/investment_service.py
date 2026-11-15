@@ -398,3 +398,48 @@ async def sync_all_users_quotes(db: AsyncSession) -> QuoteSyncAllResult:
         assets_failed=failed,
         duration_seconds=round(time.monotonic() - started, 2),
     )
+
+
+# --- APORTES -> SNAPSHOT DO MÊS ---------------------------------------------
+
+
+async def apply_contribution_to_snapshot(
+    db: AsyncSession, asset_id: uuid.UUID, contribution_date: date, delta: Decimal
+) -> None:
+    """
+    Reflete um aporte (delta > 0) ou a sua remoção (delta < 0) no snapshot do
+    mês do aporte: soma a `balance` e a `contribution`. Não faz commit — corre
+    na mesma transação que cria/apaga o aporte.
+
+    Sem snapshot nesse mês, parte do saldo mais recente anterior (senão um
+    aporte num mês novo "zerava" o património). Limitação conhecida, resolvida
+    na Fase C3 (extrato): um aporte num mês passado não se propaga aos meses
+    seguintes que já tenham snapshot.
+    """
+    month = contribution_date.replace(day=1)
+    snapshot = (await db.execute(
+        select(InvestmentSnapshot).where(
+            InvestmentSnapshot.asset_id == asset_id,
+            InvestmentSnapshot.reference_month == month,
+        )
+    )).scalar_one_or_none()
+
+    if snapshot is None:
+        if delta < 0:
+            return  # nada a reverter (o snapshot já não existe)
+        previous = (await db.execute(
+            select(InvestmentSnapshot)
+            .where(InvestmentSnapshot.asset_id == asset_id, InvestmentSnapshot.reference_month < month)
+            .order_by(InvestmentSnapshot.reference_month.desc())
+            .limit(1)
+        )).scalar_one_or_none()
+        snapshot = InvestmentSnapshot(
+            asset_id=asset_id, reference_month=month,
+            balance=Decimal(previous.balance) if previous else Decimal("0.00"),
+            contribution=Decimal("0.00"),
+        )
+        db.add(snapshot)
+
+    zero = Decimal("0.00")
+    snapshot.balance = max(zero, Decimal(snapshot.balance) + delta)
+    snapshot.contribution = max(zero, Decimal(snapshot.contribution or 0) + delta)
